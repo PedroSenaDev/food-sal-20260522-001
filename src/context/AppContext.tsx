@@ -86,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     address: 'Av. Paulista, 1000',
     currencySymbol: 'R$',
     welcomeText: 'Preparamos cada prato com ingredientes selecionados e o máximo carinho.',
+    welcomeTitle: 'Seja bem-vindo ao FoodSal!',
     businessHours: 'Quarta a Segunda: 11h30 às 23h',
     instagramUrl: 'https://instagram.com/'
   });
