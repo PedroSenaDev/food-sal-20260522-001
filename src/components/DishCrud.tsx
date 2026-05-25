@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Dish, Category, CustomizationGroup, CustomizationItem } from '../lib/mockData';
+import { Dish, CustomizationGroup } from '../lib/mockData';
 import { uploadImage } from '../lib/db';
 import { 
   Plus, 
@@ -17,8 +17,7 @@ import {
   AlertCircle,
   Loader2,
   Sliders,
-  Sparkles,
-  Scale
+  Sparkles
 } from 'lucide-react';
 
 export default function DishCrud() {
@@ -33,7 +32,6 @@ export default function DishCrud() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('0.00');
   const [imageUrl, setImageUrl] = useState('');
-  const [section, setSection] = useState<'adult' | 'kids'>('adult');
   const [sortOrder, setSortOrder] = useState(0);
   const [active, setActive] = useState(true);
   
@@ -49,7 +47,6 @@ export default function DishCrud() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter states for the list view
-  const [listSection, setListSection] = useState<'all' | 'adult' | 'kids'>('all');
   const [listCategory, setListCategory] = useState<string>('all');
 
   const formatPrice = (val: number) => {
@@ -59,12 +56,10 @@ export default function DishCrud() {
   const handleOpenAdd = () => {
     setEditingDish(null);
     setName('');
-    const matchingCats = categories.filter(c => c.section === 'adult');
-    setCategoryId(matchingCats[0]?.id || '');
+    setCategoryId(categories[0]?.id || '');
     setDescription('');
     setPrice('0.00');
     setImageUrl('');
-    setSection('adult');
     setSortOrder(dishes.length + 1);
     setActive(true);
     setIsCustomizable(false);
@@ -81,7 +76,6 @@ export default function DishCrud() {
     setDescription(dish.description);
     setPrice(dish.price.toFixed(2));
     setImageUrl(dish.image);
-    setSection(dish.section);
     setSortOrder(dish.sortOrder);
     setActive(dish.active);
     setIsCustomizable(dish.isCustomizable || false);
@@ -89,13 +83,6 @@ export default function DishCrud() {
     setSubSection(dish.subSection || '');
     setSizeOrWeight(dish.sizeOrWeight || '');
     setIsOpen(true);
-  };
-
-  const handleSectionChange = (sec: 'adult' | 'kids') => {
-    setSection(sec);
-    // Auto update category select to first matching the new section
-    const matchingCats = categories.filter(c => c.section === sec);
-    setCategoryId(matchingCats[0]?.id || '');
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,7 +206,7 @@ export default function DishCrud() {
       price: parseFloat(price) || 0,
       image: imageUrl,
       active,
-      section,
+      section: 'adult', // mantido apenas para compatibilidade de schema
       sortOrder,
       isCustomizable,
       customizationOptions: isCustomizable ? sanitizedCustomizations : [],
@@ -235,14 +222,10 @@ export default function DishCrud() {
     setConfirmDeleteId(null);
   };
 
-  // Filter categories shown in dropdown
-  const filteredCategoriesForForm = categories.filter(c => c.section === section);
-
   // Filter dishes shown in list view
   const filteredDishes = dishes.filter(dish => {
-    const matchesSection = listSection === 'all' || dish.section === listSection;
     const matchesCategory = listCategory === 'all' || dish.categoryId === listCategory;
-    return matchesSection && matchesCategory;
+    return matchesCategory;
   });
 
   return (
@@ -272,40 +255,9 @@ export default function DishCrud() {
       {/* Filters Toolbar */}
       <div className="flex flex-wrap items-center gap-3 p-4 bg-stone-50 rounded-2xl border border-stone-150 mb-6">
         
-        {/* Section Filter */}
-        <div className="flex flex-col">
-          <label className="text-[10px] font-bold text-stone-500 uppercase mb-1.5">Cardápio</label>
-          <div className="flex bg-stone-200 p-0.5 rounded-lg border border-stone-300/40">
-            <button
-              onClick={() => setListSection('all')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                listSection === 'all' ? 'bg-white text-stone-850 shadow-sm' : 'text-stone-500 hover:text-stone-850'
-              }`}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => setListSection('adult')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                listSection === 'adult' ? 'bg-white text-stone-850 shadow-sm' : 'text-stone-500 hover:text-stone-850'
-              }`}
-            >
-              Adulto
-            </button>
-            <button
-              onClick={() => setListSection('kids')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                listSection === 'kids' ? 'bg-white text-stone-850 shadow-sm' : 'text-stone-500 hover:text-stone-850'
-              }`}
-            >
-              Infantil
-            </button>
-          </div>
-        </div>
-
         {/* Category Filter */}
-        <div className="flex flex-col min-w-[150px]">
-          <label className="text-[10px] font-bold text-stone-500 uppercase mb-1.5">Categoria</label>
+        <div className="flex flex-col min-w-[200px]">
+          <label className="text-[10px] font-bold text-stone-500 uppercase mb-1.5">Filtrar por Categoria</label>
           <select
             value={listCategory}
             onChange={(e) => setListCategory(e.target.value)}
@@ -314,7 +266,7 @@ export default function DishCrud() {
             <option value="all">Todas as Categorias</option>
             {categories.map(c => (
               <option key={c.id} value={c.id}>
-                {c.name} ({c.section === 'adult' ? 'Adulto' : 'Infantil'})
+                {c.name}
               </option>
             ))}
           </select>
@@ -458,42 +410,11 @@ export default function DishCrud() {
             {/* Modal Fields - Scrollable */}
             <div className="p-6 space-y-5 overflow-y-auto flex-1">
               
-              {/* Menu Section */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                  Seção do Cardápio
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleSectionChange('adult')}
-                    className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors ${
-                      section === 'adult'
-                        ? 'bg-brand-red border-brand-red text-white'
-                        : 'bg-white border-stone-200 text-stone-600 hover:border-brand-red/20'
-                    }`}
-                  >
-                    Cardápio Adulto
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSectionChange('kids')}
-                    className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors ${
-                      section === 'kids'
-                        ? 'bg-brand-darkred border-brand-darkred text-white'
-                        : 'bg-white border-stone-200 text-stone-600 hover:border-brand-darkred/20'
-                    }`}
-                  >
-                    Cardápio Infantil
-                  </button>
-                </div>
-              </div>
-
               {/* Category selector & Sub-section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                    Categoria
+                    Categoria do Prato
                   </label>
                   <select
                     required
@@ -501,10 +422,10 @@ export default function DishCrud() {
                     onChange={(e) => setCategoryId(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 bg-white"
                   >
-                    {filteredCategoriesForForm.length === 0 ? (
-                      <option value="" disabled>Cadastre uma categoria nesta seção primeiro!</option>
+                    {categories.length === 0 ? (
+                      <option value="" disabled>Cadastre uma categoria primeiro!</option>
                     ) : (
-                      filteredCategoriesForForm.map(c => (
+                      categories.map(c => (
                         <option key={c.id} value={c.id}>
                           {c.name}
                         </option>
@@ -626,7 +547,7 @@ export default function DishCrud() {
                     <p className="text-xs text-stone-400 text-center py-4 italic">Nenhum grupo de opcionais criado ainda. Clique acima para adicionar.</p>
                   ) : (
                     <div className="space-y-4">
-                      {customizationOptions.map((group, groupIdx) => (
+                      {customizationOptions.map((group) => (
                         <div key={group.id} className="p-4 bg-white rounded-xl border border-stone-200 shadow-sm relative space-y-3">
                           
                           {/* Remove Group Button */}
@@ -795,7 +716,7 @@ export default function DishCrud() {
                     required
                     value={sortOrder}
                     onChange={(e) => setSortOrder(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 font-mono"
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-855 font-mono"
                   />
                 </div>
                 

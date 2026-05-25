@@ -11,7 +11,6 @@ export default function CategoryCrud() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [name, setName] = useState('');
-  const [section, setSection] = useState<'adult' | 'kids'>('adult');
   const [sortOrder, setSortOrder] = useState(0);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -19,7 +18,6 @@ export default function CategoryCrud() {
   const handleOpenAdd = () => {
     setEditingCategory(null);
     setName('');
-    setSection('adult');
     setSortOrder(categories.length + 1);
     setIsOpen(true);
   };
@@ -27,7 +25,6 @@ export default function CategoryCrud() {
   const handleOpenEdit = (cat: Category) => {
     setEditingCategory(cat);
     setName(cat.name);
-    setSection(cat.section);
     setSortOrder(cat.sortOrder);
     setIsOpen(true);
   };
@@ -39,7 +36,7 @@ export default function CategoryCrud() {
     await addOrUpdateCategory({
       id: editingCategory?.id,
       name: name.trim(),
-      section,
+      section: 'adult', // mantido no schema apenas para compatibilidade interna
       sortOrder
     });
 
@@ -62,7 +59,7 @@ export default function CategoryCrud() {
             Gerenciar Categorias
           </h2>
           <p className="text-stone-500 text-xs mt-0.5">
-            Organize o cardápio agrupando os pratos por categorias de interesse.
+            Organize seu cardápio ordenando e criando as categorias de pratos.
           </p>
         </div>
 
@@ -75,103 +72,51 @@ export default function CategoryCrud() {
         </button>
       </div>
 
-      {/* Grid listing */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Adult Categories List */}
-        <div className="border border-stone-150 rounded-2xl p-4 bg-stone-50/50">
-          <h3 className="text-xs font-bold text-brand-red uppercase tracking-wider mb-3 pb-2 border-b border-stone-200 flex justify-between items-center">
-            <span>Cardápio Adulto</span>
-            <span className="text-[10px] bg-brand-red/10 text-brand-red px-2 py-0.5 rounded-full font-sans">
-              {categories.filter(c => c.section === 'adult').length} categorias
-            </span>
-          </h3>
+      {/* Single Unified List */}
+      <div className="border border-stone-150 rounded-2xl p-4 bg-stone-50/50">
+        <h3 className="text-xs font-bold text-brand-red uppercase tracking-wider mb-3 pb-2 border-b border-stone-200 flex justify-between items-center">
+          <span>Categorias Cadastradas</span>
+          <span className="text-[10px] bg-brand-red/10 text-brand-red px-2 py-0.5 rounded-full font-sans">
+            {categories.length} categorias
+          </span>
+        </h3>
 
-          {categories.filter(c => c.section === 'adult').length === 0 ? (
-            <p className="text-xs text-stone-400 text-center py-6">Nenhuma categoria cadastrada.</p>
-          ) : (
-            <div className="space-y-2">
-              {categories.filter(c => c.section === 'adult').map(cat => (
-                <div 
-                  key={cat.id} 
-                  className="flex items-center justify-between p-3 bg-white border border-stone-200/60 rounded-xl hover:border-brand-red/20 transition-all shadow-sm"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xs font-bold bg-stone-100 text-stone-500 h-6 w-6 rounded-md flex items-center justify-center font-mono">
-                      {cat.sortOrder}
-                    </span>
-                    <span className="text-sm font-semibold text-stone-800">{cat.name}</span>
-                  </div>
-
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleOpenEdit(cat)}
-                      className="p-1.5 rounded-lg text-stone-500 hover:text-stone-850 hover:bg-stone-100 cursor-pointer"
-                      title="Editar"
-                    >
-                      <Edit size={14} />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDeleteId(cat.id)}
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                      title="Excluir"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+        {categories.length === 0 ? (
+          <p className="text-xs text-stone-400 text-center py-6">Nenhuma categoria cadastrada.</p>
+        ) : (
+          <div className="space-y-2">
+            {categories.map(cat => (
+              <div 
+                key={cat.id} 
+                className="flex items-center justify-between p-3 bg-white border border-stone-200/60 rounded-xl hover:border-brand-red/20 transition-all shadow-sm"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs font-bold bg-stone-100 text-stone-500 h-6 w-6 rounded-md flex items-center justify-center font-mono">
+                    {cat.sortOrder}
+                  </span>
+                  <span className="text-sm font-semibold text-stone-800">{cat.name}</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Kids Categories List */}
-        <div className="border border-stone-150 rounded-2xl p-4 bg-stone-50/50">
-          <h3 className="text-xs font-bold text-brand-darkred uppercase tracking-wider mb-3 pb-2 border-b border-stone-200 flex justify-between items-center">
-            <span>Cardápio Infantil</span>
-            <span className="text-[10px] bg-brand-darkred/10 text-brand-darkred px-2 py-0.5 rounded-full font-sans">
-              {categories.filter(c => c.section === 'kids').length} categorias
-            </span>
-          </h3>
-
-          {categories.filter(c => c.section === 'kids').length === 0 ? (
-            <p className="text-xs text-stone-400 text-center py-6">Nenhuma categoria cadastrada.</p>
-          ) : (
-            <div className="space-y-2">
-              {categories.filter(c => c.section === 'kids').map(cat => (
-                <div 
-                  key={cat.id} 
-                  className="flex items-center justify-between p-3 bg-white border border-stone-200/60 rounded-xl hover:border-brand-darkred/20 transition-all shadow-sm"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xs font-bold bg-stone-100 text-stone-500 h-6 w-6 rounded-md flex items-center justify-center font-mono">
-                      {cat.sortOrder}
-                    </span>
-                    <span className="text-sm font-semibold text-stone-800">{cat.name}</span>
-                  </div>
-
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleOpenEdit(cat)}
-                      className="p-1.5 rounded-lg text-stone-500 hover:text-stone-850 hover:bg-stone-100 cursor-pointer"
-                      title="Editar"
-                    >
-                      <Edit size={14} />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDeleteId(cat.id)}
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                      title="Excluir"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleOpenEdit(cat)}
+                    className="p-1.5 rounded-lg text-stone-500 hover:text-stone-850 hover:bg-stone-100 cursor-pointer"
+                    title="Editar"
+                  >
+                    <Edit size={14} />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteId(cat.id)}
+                    className="p-1.5 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer"
+                    title="Excluir"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add / Edit Category Dialog */}
@@ -209,36 +154,6 @@ export default function CategoryCrud() {
                   placeholder="Ex: Massas rústicas, Bebidas, etc."
                   className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                  Seção do Cardápio
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSection('adult')}
-                    className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors ${
-                      section === 'adult'
-                        ? 'bg-brand-red border-brand-red text-white'
-                        : 'bg-white border-stone-200 text-stone-600 hover:border-brand-red/20'
-                    }`}
-                  >
-                    Cardápio Adulto
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSection('kids')}
-                    className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors ${
-                      section === 'kids'
-                        ? 'bg-brand-darkred border-brand-darkred text-white'
-                        : 'bg-white border-stone-200 text-stone-600 hover:border-brand-darkred/20'
-                    }`}
-                  >
-                    Cardápio Infantil
-                  </button>
-                </div>
               </div>
 
               <div>
