@@ -50,11 +50,11 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
           
           {/* Welcome Intro */}
           <div className="space-y-2">
-            <h3 className="font-serif text-base font-bold text-stone-900">
-              Seja bem-vindo ao {settings.businessName.split('-')[0].trim()}!
+            <h3 className="font-serif text-base font-bold text-stone-900 leading-tight">
+              {settings.welcomeTitle || `Seja bem-vindo ao ${settings.businessName}!`}
             </h3>
             <p className="text-xs text-stone-500 leading-relaxed">
-              Preparamos cada prato com ingredientes selecionados e o máximo carinho para proporcionar uma experiência gastronômica memorável direto na sua mesa.
+              {settings.welcomeText || 'Preparamos cada prato com ingredientes selecionados e o máximo carinho para proporcionar uma experiência memorável direto na sua mesa.'}
             </p>
           </div>
 
@@ -104,9 +104,8 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
               </div>
               <div>
                 <span className="text-[10px] font-bold text-stone-550 block uppercase">Horário de Atendimento</span>
-                <span className="text-xs text-stone-700 font-medium leading-relaxed mt-0.5 block">
-                  Quarta a Segunda: 11h30 às 23h<br />
-                  Terça-feira: Fechado
+                <span className="text-xs text-stone-700 font-medium leading-relaxed mt-0.5 block whitespace-pre-line">
+                  {settings.businessHours || 'Quarta a Segunda: 11h30 às 23h\nTerça-feira: Fechado'}
                 </span>
               </div>
             </div>
@@ -122,7 +121,9 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
             </h4>
             <div className="flex gap-3">
               <a 
-                href="#" 
+                href={settings.instagramUrl || '#'} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-2.5 rounded-lg bg-stone-100 hover:bg-brand-red/5 text-stone-600 hover:text-brand-red font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5"
               >
                 <Globe size={14} />

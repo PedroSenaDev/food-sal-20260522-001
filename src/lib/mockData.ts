@@ -40,9 +40,10 @@ export interface SystemSettings {
   welcomeMessage: string;
   address: string;
   currencySymbol: string;
-  welcomeText: string;     // Nova: Texto de Boas-vindas da sidebar
-  businessHours: string;   // Nova: Horário de atendimento
-  instagramUrl: string;    // Nova: Link do Instagram
+  welcomeText: string;     // Texto de Boas-vindas da sidebar
+  welcomeTitle: string;    // Novo: Título customizado de Boas-vindas da sidebar
+  businessHours: string;   // Horário de atendimento
+  instagramUrl: string;    // Link do Instagram
 }
 
 export const INITIAL_CATEGORIES: Category[] = [
@@ -517,6 +518,7 @@ export const INITIAL_SETTINGS: SystemSettings = {
   address: 'Av. Paulista, 1000 - São Paulo, SP',
   currencySymbol: 'R$',
   welcomeText: 'Preparamos cada prato com ingredientes selecionados e o máximo carinho para proporcionar uma experiência gastronômica memorável direto na sua mesa.',
+  welcomeTitle: 'Seja bem-vindo ao FoodSal!',
   businessHours: 'Quarta a Segunda: 11h30 às 23h | Terça-feira: Fechado',
   instagramUrl: 'https://instagram.com/foodsal'
 };
