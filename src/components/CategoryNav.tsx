@@ -4,6 +4,11 @@ import React, { useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+// Helper to remove emojis from string
+const stripEmojis = (str: string) => {
+  return str.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
+};
+
 export default function CategoryNav() {
   const { categories, selectedCategory, setSelectedCategory } = useApp();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -59,19 +64,22 @@ export default function CategoryNav() {
           Ver Todos
         </button>
 
-        {categories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider snap-start shrink-0 transition-all duration-300 border cursor-pointer ${
-              selectedCategory === cat.id
-                ? 'bg-brand-red text-white border-brand-red shadow-md shadow-brand-red/10'
-                : 'bg-white text-stone-600 border-stone-200 hover:border-brand-red/20 hover:text-brand-red'
-            }`}
-          >
-            {cat.name}
-          </button>
-        ))}
+        {categories.map(cat => {
+          const cleanCatName = stripEmojis(cat.name);
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider snap-start shrink-0 transition-all duration-300 border cursor-pointer ${
+                selectedCategory === cat.id
+                  ? 'bg-brand-red text-white border-brand-red shadow-md shadow-brand-red/10'
+                  : 'bg-white text-stone-600 border-stone-200 hover:border-brand-red/20 hover:text-brand-red'
+              }`}
+            >
+              {cleanCatName}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

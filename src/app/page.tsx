@@ -7,6 +7,11 @@ import CategoryNav from '../components/CategoryNav';
 import MenuCard from '../components/MenuCard';
 import { Search, Loader2, Award, MapPin } from 'lucide-react';
 
+// Helper function to remove emojis from string
+const stripEmojis = (str: string) => {
+  return str.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
+};
+
 export default function Home() {
   const { 
     dishes, 
@@ -97,7 +102,7 @@ export default function Home() {
         {/* Category horizontal filters */}
         <div className="mb-8">
           <div className="text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-3 pl-1">
-            Seções do Cardápio
+            Seções
           </div>
           <CategoryNav />
         </div>
@@ -126,23 +131,25 @@ export default function Home() {
                 <MenuCard 
                   key={dish.id} 
                   dish={dish} 
-                  categoryName={category?.name} 
+                  categoryName={category ? stripEmojis(category.name) : undefined} 
                 />
               );
             })}
           </div>
         ) : (
-          // Organized display: render section-by-section (Now 2 columns on mobile!)
+          // Organized display: render section-by-section
           <div className="space-y-12 animate-in fade-in duration-300">
             {categories.map(category => {
               const categoryDishes = filteredDishes.filter(d => d.categoryId === category.id);
               if (categoryDishes.length === 0) return null;
 
+              const cleanCategoryName = stripEmojis(category.name);
+
               return (
                 <div key={category.id} className="space-y-5">
                   <div className="flex items-baseline gap-3 border-b border-stone-200/60 pb-3">
-                    <h2 className="font-serif italic font-normal text-2xl sm:text-3.5xl text-stone-900 tracking-wide">
-                      {category.name}
+                    <h2 className="font-sans font-extrabold text-base sm:text-xl text-stone-900 tracking-wider uppercase">
+                      {cleanCategoryName}
                     </h2>
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
                       ({categoryDishes.length} {categoryDishes.length === 1 ? 'item' : 'itens'})
@@ -154,7 +161,7 @@ export default function Home() {
                       <MenuCard 
                         key={dish.id} 
                         dish={dish} 
-                        categoryName={category.name} 
+                        categoryName={cleanCategoryName} 
                       />
                     ))}
                   </div>
