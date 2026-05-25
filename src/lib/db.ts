@@ -97,6 +97,7 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
   if (isSupabaseConfigured && supabase) {
     try {
       const payload = {
+        id: newId,
         name: category.name,
         section: category.section,
         sort_order: category.sortOrder
@@ -105,7 +106,11 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
       if (category.id) {
         const { error } = await supabase
           .from('categories')
-          .update(payload)
+          .update({
+            name: category.name,
+            section: category.section,
+            sort_order: category.sortOrder
+          })
           .eq('id', category.id);
         if (error) throw error;
       } else {
@@ -237,6 +242,7 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
   if (isSupabaseConfigured && supabase) {
     try {
       const payload = {
+        id: newId,
         category_id: dish.categoryId,
         name: dish.name,
         description: dish.description,
@@ -254,7 +260,20 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
       if (dish.id) {
         const { error } = await supabase
           .from('dishes')
-          .update(payload)
+          .update({
+            category_id: dish.categoryId,
+            name: dish.name,
+            description: dish.description,
+            price: dish.price,
+            image_url: dish.image,
+            active: dish.active,
+            section: dish.section,
+            sort_order: dish.sortOrder,
+            is_customizable: dish.isCustomizable || false,
+            customization_options: dish.customizationOptions || [],
+            sub_section: dish.subSection || null,
+            size_or_weight: dish.sizeOrWeight || null
+          })
           .eq('id', dish.id);
         if (error) throw error;
       } else {
