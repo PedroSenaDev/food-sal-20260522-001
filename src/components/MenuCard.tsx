@@ -47,7 +47,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     }
   }, [isDetailOpen, dish]);
 
-  // Recalculate price dynamically when options are selected/deselected
+  // Recalculate price dynamically with logic: Up to 'max' options are free, additional ones are paid
   useEffect(() => {
     if (!dish.isCustomizable || !dish.customizationOptions) return;
 
@@ -55,12 +55,25 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     Object.entries(selections).forEach(([groupId, items]) => {
       const group = dish.customizationOptions?.find(g => g.id === groupId);
       if (group) {
-        items.forEach(itemName => {
+        // Collect matches with their pricing
+        const itemsWithPrices = items.map(itemName => {
           const matchedItem = group.items.find(i => i.name === itemName);
-          if (matchedItem && matchedItem.price) {
-            extraPrice += matchedItem.price;
-          }
+          return {
+            name: itemName,
+            price: matchedItem?.price || 0
+          };
         });
+
+        // Sort ascending so cheapest items are discounted (first 'group.max' items are free)
+        itemsWithPrices.sort((a, b) => a.price - b.price);
+
+        // If selections count exceeds 'max' limit, we charge for the extras
+        if (itemsWithPrices.length > group.max) {
+          const paidItems = itemsWithPrices.slice(group.max);
+          paidItems.forEach(item => {
+            extraPrice += item.price;
+          });
+        }
       }
     });
 
@@ -84,21 +97,19 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
           [group.id]: currentGroupSelections.filter(n => n !== itemName)
         }));
       } else {
-        if (currentGroupSelections.length < group.max) {
-          setSelections(prev => ({
-            ...prev,
-            [group.id]: [...currentGroupSelections, itemName]
-          }));
-          setErrorMsg('');
-        } else {
-          setErrorMsg(`Máximo de ${group.max} itens para "${group.title}" atingido!`);
-        }
+        // No hard limits now! Clients can select as many as they want
+        // But we still offer dynamic feedback on price
+        setSelections(prev => ({
+          ...prev,
+          [group.id]: [...currentGroupSelections, itemName]
+        }));
+        setErrorMsg('');
       }
     }
   };
 
   const handleAddToCart = () => {
-    // Validate required selections
+    // Validate minimum required selections
     if (dish.isCustomizable && dish.customizationOptions) {
       for (const group of dish.customizationOptions) {
         const chosen = selections[group.id] || [];
@@ -109,19 +120,32 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       }
     }
 
-    // Prepare customized items structure
+    // Prepare customized items structure with adjusted free-price mapping for the cart
     const finalizedCustoms: SelectedCustomization[] = [];
     if (dish.isCustomizable && dish.customizationOptions) {
       dish.customizationOptions.forEach(group => {
         const chosenNames = selections[group.id] || [];
         if (chosenNames.length > 0) {
-          const itemsWithPrice = chosenNames.map(name => {
+          const itemsWithPrices = chosenNames.map(name => {
             const match = group.items.find(i => i.name === name);
-            return { name, price: match?.price };
+            return { name, price: match?.price || 0 };
           });
+
+          // Sort ascending so the cheapest selections within 'group.max' count remain free
+          itemsWithPrices.sort((a, b) => a.price - b.price);
+
+          const itemsWithAdjustedPrices = itemsWithPrices.map((item, idx) => {
+            // idx < group.max means it is within the free limit
+            const isFree = idx < group.max;
+            return {
+              name: item.name,
+              price: isFree ? undefined : (item.price > 0 ? item.price : undefined)
+            };
+          });
+
           finalizedCustoms.push({
             groupTitle: group.title,
-            items: itemsWithPrice
+            items: itemsWithAdjustedPrices
           });
         }
       });
@@ -263,20 +287,25 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                         <div className="flex justify-between items-center">
                           <div>
                             <span className="text-xs font-bold text-stone-850 block">{group.title}</span>
-                            <span className="text-[10px] text-stone-500 font-semibold">
-                              {group.min > 0 
-                                ? `Obrigatório • Escolha ${group.min === group.max ? group.min : `de ${group.min} a ${group.max}`}` 
-                                : `Opcional • Escolha até ${group.max}`}
+                            <span className="text-[10px] text-stone-550 font-semibold block mt-0.5 leading-tight">
+                              {isRadio 
+                                ? `Selecione 1 opção` 
+                                : `Selecione livremente • Até ${group.max} item(ns) grátis (adicionais cobrados)`}
                             </span>
+                            {group.min > 0 && (
+                              <span className="text-[9px] text-brand-red font-bold uppercase block mt-1">
+                                Obrigatório selecionar pelo menos {group.min}
+                              </span>
+                            )}
                           </div>
                           
                           {/* Checked Pill */}
-                          <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            chosen.length >= group.min && chosen.length <= group.max
+                          <div className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                            chosen.length >= group.min
                               ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-amber-100 text-amber-800'
                           }`}>
-                            {chosen.length} de {group.max}
+                            {chosen.length} selecionado(s) {chosen.length > group.max && `(+${chosen.length - group.max} extra)`}
                           </div>
                         </div>
 
@@ -333,7 +362,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                   placeholder="Ex: Ponto da carne, sem salada, tirar cebola, etc."
                   rows={2}
                   maxLength={160}
-                  className="w-full p-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs text-stone-850 resize-none bg-stone-50/50"
+                  className="w-full p-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs text-stone-855 resize-none bg-stone-50/50"
                 />
               </div>
 
@@ -346,7 +375,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
 
             </div>
 
-            {/* Modal Sticky Footer with smaller, compact buttons */}
+            {/* Modal Sticky Footer */}
             <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-4 shrink-0">
               <div className="flex flex-col">
                 <span className="text-[9px] text-stone-500 font-bold uppercase tracking-wider">Total</span>

@@ -403,9 +403,9 @@ export default function DishCrud() {
               </button>
             </div>
 
-            {/* Modal Fields - Scrollable (Accellerated with -webkit-overflow-scrolling) */}
+            {/* Modal Fields - Scrollable */}
             <div 
-              className="p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto flex-1 overscroll-contain select-none"
+              className="p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto flex-1 overscroll-contain"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               
@@ -447,7 +447,7 @@ export default function DishCrud() {
                 </div>
               </div>
 
-              {/* Name, Price & Weight Grid (Explicit grid sizes & alignment labels) */}
+              {/* Name, Price & Weight Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
                 <div className="sm:col-span-2 flex flex-col">
                   <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
@@ -531,7 +531,6 @@ export default function DishCrud() {
                 <div className="space-y-4 p-3 md:p-4 bg-stone-50 rounded-xl md:rounded-2xl border border-stone-200">
                   <div className="flex justify-between items-center border-b border-stone-200 pb-2 gap-2">
                     <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1">
-                      <Sparkles size={12} className="text-brand-red" />
                       Estrutura de Opcionais
                     </span>
                     <button
@@ -563,13 +562,13 @@ export default function DishCrud() {
                           {/* Group Title and Rules */}
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                             <div className="sm:col-span-2 flex flex-col">
-                              <label className="text-[9px] font-bold text-stone-550 uppercase">Título do Grupo</label>
+                              <label className="text-[9px] font-bold text-stone-550 uppercase">Título do Grupo (No cardápio: Limite grátis = Máximo)</label>
                               <input
                                 type="text"
                                 required
                                 value={group.title}
                                 onChange={(e) => handleGroupTitleChange(group.id, e.target.value)}
-                                placeholder="Ex: Escolha até 3 acompanhamentos"
+                                placeholder="Ex: Escolha seus acompanhamentos"
                                 className="w-full px-2.5 py-1.5 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
                               />
                             </div>
@@ -586,7 +585,7 @@ export default function DishCrud() {
                                 />
                               </div>
                               <div className="flex flex-col">
-                                <label className="text-[9px] font-bold text-stone-550 uppercase">Máximo</label>
+                                <label className="text-[9px] font-bold text-stone-550 uppercase" title="Até esta quantidade é grátis, depois cobra">Qtd Grátis (Máx)</label>
                                 <input
                                   type="number"
                                   min={1}
