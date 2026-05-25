@@ -47,7 +47,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     }
   }, [isDetailOpen, dish]);
 
-  // Recalculate price dynamically
+  // Recalculate price dynamically (sum selected items with configured prices)
   useEffect(() => {
     if (!dish.isCustomizable || !dish.customizationOptions) return;
 
@@ -55,34 +55,12 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     Object.entries(selections).forEach(([groupId, items]) => {
       const group = dish.customizationOptions?.find(g => g.id === groupId);
       if (group) {
-        // Check if group has any free options (price is 0 or undefined)
-        const hasFreeOptions = group.items.some(it => !it.price || it.price === 0);
-
-        // Collect matches with their pricing
-        const itemsWithPrices = items.map(itemName => {
+        items.forEach(itemName => {
           const matchedItem = group.items.find(i => i.name === itemName);
-          return {
-            name: itemName,
-            price: matchedItem?.price || 0
-          };
-        });
-
-        if (hasFreeOptions) {
-          // Case A: Group contains standard free items.
-          // Items with price > 0 are always paid as extra options, and do not consume free slots.
-          itemsWithPrices.forEach(item => {
-            extraPrice += item.price;
-          });
-        } else {
-          // Case B: Group contains only paid items (e.g., premium list). First 'group.max' cheapest are free.
-          itemsWithPrices.sort((a, b) => a.price - b.price);
-          if (itemsWithPrices.length > group.max) {
-            const paidItems = itemsWithPrices.slice(group.max);
-            paidItems.forEach(item => {
-              extraPrice += item.price;
-            });
+          if (matchedItem && matchedItem.price) {
+            extraPrice += matchedItem.price;
           }
-        }
+        });
       }
     });
 
@@ -92,20 +70,26 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
   const handleOptionToggle = (group: CustomizationGroup, itemName: string, isRadio: boolean) => {
     const currentGroupSelections = selections[group.id] || [];
 
-    if (isRadio) {
+    const exists = currentGroupSelections.includes(itemName);
+    if (exists) {
       setSelections(prev => ({
         ...prev,
-        [group.id]: [itemName]
+        [group.id]: currentGroupSelections.filter(n => n !== itemName)
       }));
       setErrorMsg('');
     } else {
-      const exists = currentGroupSelections.includes(itemName);
-      if (exists) {
+      if (isRadio) {
         setSelections(prev => ({
           ...prev,
-          [group.id]: currentGroupSelections.filter(n => n !== itemName)
+          [group.id]: [itemName]
         }));
+        setErrorMsg('');
       } else {
+        // Estritamente limitado ao limite máximo!
+        if (currentGroupSelections.length >= group.max) {
+          setErrorMsg(`Você pode selecionar no máximo ${group.max} opção(ões) em "${group.title}"`);
+          return;
+        }
         setSelections(prev => ({
           ...prev,
           [group.id]: [...currentGroupSelections, itemName]
@@ -127,41 +111,20 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       }
     }
 
-    // Prepare customized items structure with adjusted free-price mapping for the cart
+    // Prepare customized items structure
     const finalizedCustoms: SelectedCustomization[] = [];
     if (dish.isCustomizable && dish.customizationOptions) {
       dish.customizationOptions.forEach(group => {
         const chosenNames = selections[group.id] || [];
         if (chosenNames.length > 0) {
-          const hasFreeOptions = group.items.some(it => !it.price || it.price === 0);
-
           const itemsWithPrices = chosenNames.map(name => {
             const match = group.items.find(i => i.name === name);
-            return { name, price: match?.price || 0 };
+            return { name, price: match?.price };
           });
-
-          let itemsWithAdjustedPrices;
-          if (hasFreeOptions) {
-            // Case A: Always keep their original price if > 0
-            itemsWithAdjustedPrices = itemsWithPrices.map(item => ({
-              name: item.name,
-              price: item.price > 0 ? item.price : undefined
-            }));
-          } else {
-            // Case B: Sort ascending so the cheapest selections within 'group.max' count remain free
-            itemsWithPrices.sort((a, b) => a.price - b.price);
-            itemsWithAdjustedPrices = itemsWithPrices.map((item, idx) => {
-              const isFree = idx < group.max;
-              return {
-                name: item.name,
-                price: isFree ? undefined : (item.price > 0 ? item.price : undefined)
-              };
-            });
-          }
 
           finalizedCustoms.push({
             groupTitle: group.title,
-            items: itemsWithAdjustedPrices
+            items: itemsWithPrices
           });
         }
       });
@@ -306,7 +269,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                             <span className="text-[10px] text-stone-550 font-semibold block mt-0.5 leading-tight">
                               {isRadio 
                                 ? `Selecione 1 opção` 
-                                : `Selecione livremente • Até ${group.max} item(ns) grátis (adicionais cobrados)`}
+                                : `Escolha até ${group.max} opção(ões)`}
                             </span>
                             {group.min > 0 && (
                               <span className="text-[9px] text-brand-red font-bold uppercase block mt-1">
@@ -321,7 +284,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                               ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-amber-100 text-amber-800'
                           }`}>
-                            {chosen.length} selecionado(s) {chosen.length > group.max && `(+${chosen.length - group.max} extra)`}
+                            {chosen.length} / {group.max} selecionado(s)
                           </div>
                         </div>
 
@@ -384,7 +347,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
 
               {/* Errors notifications */}
               {errorMsg && (
-                <div className="p-3 bg-red-50 border border-red-200 text-xs text-red-700 rounded-xl font-bold">
+                <div className="p-3 bg-red-50 border border-red-200 text-xs text-red-700 rounded-xl font-bold animate-pulse">
                   ⚠️ {errorMsg}
                 </div>
               )}
