@@ -5,11 +5,8 @@ import { useApp } from '../context/AppContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function CategoryNav() {
-  const { categories, selectedCategory, setSelectedCategory, activeSection } = useApp();
+  const { categories, selectedCategory, setSelectedCategory } = useApp();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Filter categories by active section
-  const sectionCategories = categories.filter(c => c.section === activeSection);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -21,10 +18,10 @@ export default function CategoryNav() {
     }
   };
 
-  if (sectionCategories.length === 0) return null;
+  if (categories.length === 0) return null;
 
   return (
-    <div className="relative w-full mb-8">
+    <div className="relative w-full">
       {/* Scroll Navigation Buttons for Desktop */}
       <div className="absolute inset-y-0 -left-4 flex items-center justify-center pointer-events-none z-10 hidden sm:flex">
         <button
@@ -62,7 +59,7 @@ export default function CategoryNav() {
           Ver Todos
         </button>
 
-        {sectionCategories.map(cat => (
+        {categories.map(cat => (
           <button
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}

@@ -3,16 +3,14 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import Navbar from '../components/Navbar';
-import SectionTabs from '../components/SectionTabs';
 import CategoryNav from '../components/CategoryNav';
 import MenuCard from '../components/MenuCard';
-import { Search, Loader2, Sparkles, MapPin } from 'lucide-react';
+import { Search, Loader2, Award, MapPin } from 'lucide-react';
 
 export default function Home() {
   const { 
     dishes, 
     categories, 
-    activeSection, 
     selectedCategory, 
     searchQuery, 
     setSearchQuery, 
@@ -20,18 +18,15 @@ export default function Home() {
     settings
   } = useApp();
 
-  // Filter logic
+  // Filter logic: unifies display of all categories 1 to 6
   const filteredDishes = dishes.filter(dish => {
     // 1. Filter by active state
     if (!dish.active) return false;
     
-    // 2. Filter by active section (Adult vs Kids)
-    if (dish.section !== activeSection) return false;
-
-    // 3. Filter by category
+    // 2. Filter by category
     if (selectedCategory && dish.categoryId !== selectedCategory) return false;
 
-    // 4. Filter by search query
+    // 3. Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       const matchesName = dish.name.toLowerCase().includes(query);
@@ -61,7 +56,7 @@ export default function Home() {
 
           {/* Subtitle tightly spaced */}
           <p className="text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase text-[#F5E6D3]/80 mt-3 select-none">
-            {settings.businessName.split('-')[1]?.trim() || 'Gastronomia & Sabor'}
+            {settings.businessName.split('-')[1]?.trim() || 'Menu Digital Premium'}
           </p>
 
           {/* Fine separator line */}
@@ -71,25 +66,28 @@ export default function Home() {
       </section>
 
       {/* Main Menu Feed */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 pb-12">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 pb-24">
         
-        {/* Section selectors */}
-        <SectionTabs />
+        {/* Info bar address */}
+        <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-6 text-center">
+          <MapPin size={12} className="text-brand-red" />
+          <span>{settings.address}</span>
+        </div>
 
         {/* Search Bar */}
-        <div className="w-full max-w-md mx-auto relative mb-6">
+        <div className="w-full max-w-md mx-auto relative mb-8">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar pratos ou ingredientes..."
-            className="w-full pl-11 pr-4 py-3 rounded-2xl border border-stone-250/70 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-800 bg-white/90 shadow-sm"
+            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-stone-250/70 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-805 bg-white/95 shadow-sm"
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400 hover:text-brand-red cursor-pointer"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-450 hover:text-brand-red cursor-pointer"
             >
               Limpar
             </button>
@@ -97,9 +95,14 @@ export default function Home() {
         </div>
 
         {/* Category horizontal filters */}
-        <CategoryNav />
+        <div className="mb-8">
+          <div className="text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-3 pl-1">
+            Seções do Cardápio
+          </div>
+          <CategoryNav />
+        </div>
 
-        {/* Items Grid */}
+        {/* Items Grid organized by categories if 'All' is selected */}
         {isLoading ? (
           <div className="h-64 flex flex-col items-center justify-center text-brand-red space-y-2">
             <Loader2 className="animate-spin" size={32} />
@@ -108,13 +111,14 @@ export default function Home() {
             </span>
           </div>
         ) : filteredDishes.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center text-stone-400 space-y-2">
+          <div className="h-64 flex flex-col items-center justify-center text-stone-450 space-y-2">
             <p className="text-sm font-semibold">Nenhum prato disponível no momento.</p>
             {searchQuery && (
               <p className="text-xs text-stone-400 font-medium">Tente buscar por termos diferentes.</p>
             )}
           </div>
-        ) : (
+        ) : selectedCategory ? (
+          // Individual category display
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
             {filteredDishes.map(dish => {
               const category = categories.find(c => c.id === dish.categoryId);
@@ -124,6 +128,37 @@ export default function Home() {
                   dish={dish} 
                   categoryName={category?.name} 
                 />
+              );
+            })}
+          </div>
+        ) : (
+          // Organized display: render section-by-section with header titles
+          <div className="space-y-12 animate-in fade-in duration-300">
+            {categories.map(category => {
+              const categoryDishes = filteredDishes.filter(d => d.categoryId === category.id);
+              if (categoryDishes.length === 0) return null;
+
+              return (
+                <div key={category.id} className="space-y-4">
+                  <div className="flex items-center gap-3 border-b border-stone-200 pb-2">
+                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
+                      {category.name}
+                    </h2>
+                    <span className="text-[10px] font-bold bg-brand-red/10 text-brand-red px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      {categoryDishes.length} {categoryDishes.length === 1 ? 'Item' : 'Itens'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {categoryDishes.map(dish => (
+                      <MenuCard 
+                        key={dish.id} 
+                        dish={dish} 
+                        categoryName={category.name} 
+                      />
+                    ))}
+                  </div>
+                </div>
               );
             })}
           </div>

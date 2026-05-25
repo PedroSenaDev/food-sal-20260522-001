@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { X, ShoppingBag, Trash2, Plus, Minus, Send, MapPin, Hash } from 'lucide-react';
+import { X, ShoppingBag, Trash2, Plus, Minus, Send, Hash } from 'lucide-react';
 
 interface TrayModalProps {
   isOpen: boolean;
@@ -43,10 +43,21 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     
     let itemsStr = '';
     cart.forEach(item => {
-      itemsStr += `• *${item.quantity}x* ${item.dish.name} (${formatPrice(item.dish.price * item.quantity)})\n`;
+      const priceToUse = item.customPrice !== undefined ? item.customPrice : item.dish.price;
+      itemsStr += `• *${item.quantity}x* ${item.dish.name} (${formatPrice(priceToUse * item.quantity)})\n`;
+      
+      // Formatting customizations selected
+      if (item.customizations && item.customizations.length > 0) {
+        item.customizations.forEach(g => {
+          const names = g.items.map(it => it.name + (it.price ? ` (+${formatPrice(it.price)})` : '')).join(', ');
+          itemsStr += `  _> ${g.groupTitle}:_ ${names}\n`;
+        });
+      }
+
       if (item.notes) {
         itemsStr += `  _Obs: ${item.notes}_\n`;
       }
+      itemsStr += `\n`;
     });
 
     const totalStr = `*TOTAL:* ${formatPrice(cartTotal)}`;
@@ -56,8 +67,8 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
       `----------------------------------\n` +
       `📍 ${tableStr}\n` +
       `----------------------------------\n` +
-      `*Itens do Pedido:*\n` +
-      `${itemsStr}\n` +
+      `*Itens do Pedido:*\n\n` +
+      `${itemsStr}` +
       `----------------------------------\n` +
       `${totalStr}\n\n` +
       `_Enviado pelo Cardápio Digital FoodSal_`;
@@ -99,7 +110,6 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
           {/* Table Input Setup */}
           <div className="p-3 bg-[#F5E6D3]/40 border border-brand-red/10 rounded-2xl flex items-center justify-between gap-3 shadow-inner">
             <div className="flex items-center gap-2 text-brand-darkred">
-              <Hash size={16} />
               <span className="text-xs font-bold uppercase tracking-wider">Mesa atual:</span>
             </div>
             <input
@@ -125,65 +135,80 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
             </div>
           ) : (
             <div className="divide-y divide-stone-100">
-              {cart.map(item => (
-                <div key={item.dish.id} className="py-3 flex gap-3 first:pt-0 last:pb-0">
-                  {/* Item Image */}
-                  <div className="h-16 w-16 rounded-xl bg-stone-100 overflow-hidden shrink-0">
-                    <img
-                      src={item.dish.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=120&q=80'}
-                      alt={item.dish.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-
-                  {/* Item Details */}
-                  <div className="flex-1 flex flex-col min-w-0">
-                    <div className="flex justify-between items-start">
-                      <h4 className="text-sm font-bold text-stone-900 truncate">
-                        {item.dish.name}
-                      </h4>
-                      <span className="text-sm font-bold text-brand-red whitespace-nowrap ml-2">
-                        {formatPrice(item.dish.price * item.quantity)}
-                      </span>
+              {cart.map(item => {
+                const activePrice = item.customPrice !== undefined ? item.customPrice : item.dish.price;
+                return (
+                  <div key={item.id} className="py-4 flex gap-3 first:pt-0 last:pb-0">
+                    {/* Item Image */}
+                    <div className="h-16 w-16 rounded-xl bg-stone-100 overflow-hidden shrink-0">
+                      <img
+                        src={item.dish.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=120&q=80'}
+                        alt={item.dish.name}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
 
-                    {item.notes && (
-                      <p className="text-[11px] text-stone-500 italic mt-0.5 bg-stone-50 p-1.5 rounded-lg border border-stone-100 line-clamp-1">
-                        &ldquo;{item.notes}&rdquo;
-                      </p>
-                    )}
-
-                    {/* Quantity controllers */}
-                    <div className="flex items-center justify-between mt-2.5">
-                      <div className="flex items-center gap-2 bg-stone-100 rounded-lg p-0.5 border border-stone-200">
-                        <button
-                          onClick={() => updateCartQuantity(item.dish.id, item.quantity - 1)}
-                          className="p-1 rounded text-stone-600 hover:bg-white active:scale-95 cursor-pointer"
-                        >
-                          <Minus size={12} />
-                        </button>
-                        <span className="text-xs font-bold w-6 text-center text-stone-800">
-                          {item.quantity}
+                    {/* Item Details */}
+                    <div className="flex-1 flex flex-col min-w-0">
+                      <div className="flex justify-between items-start">
+                        <h4 className="text-sm font-bold text-stone-900 truncate">
+                          {item.dish.name}
+                        </h4>
+                        <span className="text-sm font-bold text-brand-red whitespace-nowrap ml-2">
+                          {formatPrice(activePrice * item.quantity)}
                         </span>
-                        <button
-                          onClick={() => updateCartQuantity(item.dish.id, item.quantity + 1)}
-                          className="p-1 rounded text-stone-600 hover:bg-white active:scale-95 cursor-pointer"
-                        >
-                          <Plus size={12} />
-                        </button>
                       </div>
 
-                      <button
-                        onClick={() => removeFromCart(item.dish.id)}
-                        className="p-1 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
-                        title="Remover item"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {/* Display Selected Customizations */}
+                      {item.customizations && item.customizations.length > 0 && (
+                        <div className="mt-1 bg-stone-50 rounded-lg p-2 border border-stone-100 space-y-1 text-[11px] text-stone-600">
+                          {item.customizations.map((g, idx) => (
+                            <div key={idx} className="leading-tight">
+                              <span className="font-bold text-stone-500">{g.groupTitle}:</span>{' '}
+                              {g.items.map(it => it.name + (it.price ? ` (+${formatPrice(it.price)})` : '')).join(', ')}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {item.notes && (
+                        <p className="text-[11px] text-stone-500 italic mt-1 bg-stone-50 p-1.5 rounded-lg border border-stone-100">
+                          &ldquo;{item.notes}&rdquo;
+                        </p>
+                      )}
+
+                      {/* Quantity controllers */}
+                      <div className="flex items-center justify-between mt-2.5">
+                        <div className="flex items-center gap-2 bg-stone-100 rounded-lg p-0.5 border border-stone-200">
+                          <button
+                            onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
+                            className="p-1 rounded text-stone-600 hover:bg-white active:scale-95 cursor-pointer"
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span className="text-xs font-bold w-6 text-center text-stone-800">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
+                            className="p-1 rounded text-stone-600 hover:bg-white active:scale-95 cursor-pointer"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="p-1 text-stone-400 hover:text-red-650 transition-colors cursor-pointer"
+                          title="Remover item"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -193,7 +218,7 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
         {cart.length > 0 && (
           <div className="p-4 border-t border-stone-100 bg-stone-50 space-y-4">
             <div className="flex justify-between items-center text-stone-900">
-              <span className="text-sm font-medium">Subtotal</span>
+              <span className="text-sm font-bold">Subtotal</span>
               <span className="text-lg font-bold text-stone-900">{formatPrice(cartTotal)}</span>
             </div>
             

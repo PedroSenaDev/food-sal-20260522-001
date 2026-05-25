@@ -1,7 +1,20 @@
+export interface CustomizationItem {
+  name: string;
+  price?: number;
+}
+
+export interface CustomizationGroup {
+  id: string;
+  title: string;
+  min: number;
+  max: number;
+  items: CustomizationItem[];
+}
+
 export interface Category {
   id: string;
   name: string;
-  section: 'adult' | 'kids';
+  section: 'adult' | 'kids'; // kept for backwards compat but consolidated in display
   sortOrder: number;
 }
 
@@ -15,6 +28,10 @@ export interface Dish {
   active: boolean;
   section: 'adult' | 'kids';
   sortOrder: number;
+  isCustomizable?: boolean;
+  customizationOptions?: CustomizationGroup[];
+  subSection?: string; // used for beverages (e.g., 'Sucos Funcionais')
+  sizeOrWeight?: string; // used for desserts
 }
 
 export interface SystemSettings {
@@ -26,116 +43,161 @@ export interface SystemSettings {
 }
 
 export const INITIAL_CATEGORIES: Category[] = [
-  // CARDÁPIO ADULTO
-  { id: 'cat-adult-guarnicoes', name: 'Guarnições', section: 'adult', sortOrder: 1 },
-  { id: 'cat-adult-espaguetes', name: 'Espaguetes e Pratos', section: 'adult', sortOrder: 2 },
-  { id: 'cat-adult-saladas', name: 'Saladas e Verduras', section: 'adult', sortOrder: 3 },
-  { id: 'cat-adult-carnes', name: 'Carnes', section: 'adult', sortOrder: 4 },
-
-  // CARDÁPIO INFANTIL
-  { id: 'cat-kids-guarnicoes', name: 'Guarnições', section: 'kids', sortOrder: 1 },
-  { id: 'cat-kids-saladas', name: 'Saladas & Verduras', section: 'kids', sortOrder: 2 },
-  { id: 'cat-kids-carnes', name: 'Carnes', section: 'kids', sortOrder: 3 },
-  { id: 'cat-kids-frutas', name: 'Frutas Picadas', section: 'kids', sortOrder: 4 },
+  { id: 'cat-monte-seu-pedido', name: 'Monte seu Pedido 🍳', section: 'adult', sortOrder: 1 },
+  { id: 'cat-pratos-individuais', name: 'Pratos Individuais 🍽️', section: 'adult', sortOrder: 2 },
+  { id: 'cat-kids', name: 'Kids 👶', section: 'adult', sortOrder: 3 },
+  { id: 'cat-bebidas', name: 'Bebidas 🥤', section: 'adult', sortOrder: 4 },
+  { id: 'cat-sobremesas', name: 'Sobremesas 🍰', section: 'adult', sortOrder: 5 },
+  { id: 'cat-extras-frutas', name: 'Extras / Frutas 🍎', section: 'adult', sortOrder: 6 },
 ];
 
 export const INITIAL_DISHES: Dish[] = [
-  // CARDÁPIO ADULTO - Guarnições
+  // ========================================================
+  // 1. MONTE SEU PEDIDO
+  // ========================================================
   {
-    id: 'dish-ad-arroz-br',
-    categoryId: 'cat-adult-guarnicoes',
-    name: 'Arroz Branco',
-    description: 'Arroz agulhinha soltinho, cozido com alho e cebola.',
-    price: 12.00,
-    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-parmegiana-custom',
+    categoryId: 'cat-monte-seu-pedido',
+    name: 'Parmegiana Personalizado',
+    description: 'Monte a sua parmegiana escolhendo a proteína de sua preferência, acompanhamentos deliciosos e saladas.',
+    price: 39.90,
+    image: 'https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'adult',
-    sortOrder: 1
+    sortOrder: 1,
+    isCustomizable: true,
+    customizationOptions: [
+      {
+        id: 'parm-meat',
+        title: 'Escolha sua Proteína (Selecione 1)',
+        min: 1,
+        max: 1,
+        items: [
+          { name: 'Contra filé' },
+          { name: 'Frango' }
+        ]
+      },
+      {
+        id: 'parm-sides',
+        title: 'Acompanhamentos (Fixos inclusos)',
+        min: 3,
+        max: 3,
+        items: [
+          { name: 'Arroz branco (Incluso)' },
+          { name: 'Arroz birô-birô (Incluso)' },
+          { name: 'Batata frita (Incluso)' }
+        ]
+      },
+      {
+        id: 'parm-salads',
+        title: 'Adicional de Salada (Opcional - Pago Separado)',
+        min: 0,
+        max: 1,
+        items: [
+          { name: 'Mix de Folhas com Frutas', price: 6.00 },
+          { name: 'Salada Caesar Clássica', price: 7.50 }
+        ]
+      }
+    ]
   },
   {
-    id: 'dish-ad-arroz-bb',
-    categoryId: 'cat-adult-guarnicoes',
-    name: 'Arroz Biro Biro',
-    description: 'Arroz soltinho com bacon crocante, ovos mexidos, cebola e batata palha caseira.',
-    price: 18.00,
-    image: 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-carne-sol-custom',
+    categoryId: 'cat-monte-seu-pedido',
+    name: 'Carne de Sol Acebolada',
+    description: 'Deliciosa carne de sol acebolada grelhada com opções flexíveis de até 3 acompanhamentos e até 3 saladas.',
+    price: 45.90,
+    image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'adult',
-    sortOrder: 2
-  },
-  {
-    id: 'dish-ad-feijao-ca',
-    categoryId: 'cat-adult-guarnicoes',
-    name: 'Feijão Caldo',
-    description: 'Feijão carioca cozido na hora, temperado com alho, cebola e folhas de louro.',
-    price: 10.00,
-    image: 'https://images.unsplash.com/photo-1547058886-f14d021c175f?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 3
-  },
-  {
-    id: 'dish-ad-feijao-tr',
-    categoryId: 'cat-adult-guarnicoes',
-    name: 'Feijão Tropeiro',
-    description: 'Feijão com farinha de mandioca, linguiça calabresa, bacon, ovos, couve fresca e temperos.',
-    price: 22.00,
-    image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 4
-  },
-  {
-    id: 'dish-ad-batata-fr',
-    categoryId: 'cat-adult-guarnicoes',
-    name: 'Batata Frita',
-    description: 'Batatas fritas crocantes por fora e macias por dentro, com um toque de sal.',
-    price: 16.00,
-    image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 5
+    sortOrder: 2,
+    isCustomizable: true,
+    customizationOptions: [
+      {
+        id: 'sol-sides',
+        title: 'Escolha até 3 Acompanhamentos',
+        min: 1,
+        max: 3,
+        items: [
+          { name: 'Arroz branco' },
+          { name: 'Arroz birô-birô' },
+          { name: 'Feijão caldo' },
+          { name: 'Feijão tropeiro' },
+          { name: 'Batata frita' },
+          { name: 'Espaguete carbonara' },
+          { name: 'Espaguete mineira' },
+          { name: 'Espaguete alho e óleo' }
+        ]
+      },
+      {
+        id: 'sol-salads',
+        title: 'Escolha até 3 Saladas',
+        min: 0,
+        max: 3,
+        items: [
+          { name: 'Mix de folhas com frutas' },
+          { name: 'Cenoura' },
+          { name: 'Beterraba' },
+          { name: 'Brócolis na manteiga' },
+          { name: 'Tomate com cebola roxa' },
+          { name: 'Couve-flor na manteiga' },
+          { name: 'Repolho roxo' }
+        ]
+      },
+      {
+        id: 'sol-fruits',
+        title: 'Adicionar Porção de Frutas (Opcional)',
+        min: 0,
+        max: 3,
+        items: [
+          { name: 'Manga picada', price: 4.50 },
+          { name: 'Melancia em cubos', price: 4.50 },
+          { name: 'Morangos frescos', price: 6.00 }
+        ]
+      }
+    ]
   },
 
-  // CARDÁPIO ADULTO - Espaguetes
+  // ========================================================
+  // 2. PRATOS INDIVIDUAIS
+  // ========================================================
   {
-    id: 'dish-ad-esp-bol',
-    categoryId: 'cat-adult-espaguetes',
-    name: 'À Bolonhesa',
-    description: 'Espaguete al dente ao clássico molho de tomates frescos e carne moída selecionada.',
-    price: 32.00,
-    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 1
-  },
-  {
-    id: 'dish-ad-esp-carb',
-    categoryId: 'cat-adult-espaguetes',
-    name: 'Carbonara',
-    description: 'Tradicional molho romano com gemas de ovos, queijo parmesão ralado e guanciale crocante.',
+    id: 'dish-ind-carbonara',
+    categoryId: 'cat-pratos-individuais',
+    name: 'Espaguete à Carbonara',
+    description: 'Tradicional massa italiana com molho cremoso de gemas de ovos, queijo parmesão e guanciale crocante.',
     price: 38.00,
     image: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'adult',
+    sortOrder: 1
+  },
+  {
+    id: 'dish-ind-mineira',
+    categoryId: 'cat-pratos-individuais',
+    name: 'Espaguete à Mineira',
+    description: 'Espaguete com couve refogada na manteiga de alho, pedacinhos de linguiça da roça e queijo minas curado.',
+    price: 34.00,
+    image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
     sortOrder: 2
   },
   {
-    id: 'dish-ad-esp-min',
-    categoryId: 'cat-adult-espaguetes',
-    name: 'Mineira',
-    description: 'Espaguete com couve refogada, pedacinhos de linguiça da roça e queijo minas curado.',
-    price: 34.00,
-    image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-ind-bolonhesa',
+    categoryId: 'cat-pratos-individuais',
+    name: 'Espaguete à Bolonhesa',
+    description: 'Massa al dente com generosa porção do nosso clássico molho artesanal de tomates frescos e carne bovina moída.',
+    price: 32.00,
+    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'adult',
     sortOrder: 3
   },
   {
-    id: 'dish-ad-esp-alho',
-    categoryId: 'cat-adult-espaguetes',
-    name: 'Alho e Óleo',
-    description: 'Espaguete simples e primoroso, salteado no azeite extravirgem com alho dourado e salsinha.',
+    id: 'dish-ind-alho-oleo',
+    categoryId: 'cat-pratos-individuais',
+    name: 'Espaguete Alho e Óleo',
+    description: 'Simples e reconfortante espaguete salteado no azeite extravirgem com alho laminado dourado e salsinha fresca.',
     price: 28.00,
     image: 'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=600&q=80',
     active: true,
@@ -143,374 +205,267 @@ export const INITIAL_DISHES: Dish[] = [
     sortOrder: 4
   },
   {
-    id: 'dish-ad-ris-cam',
-    categoryId: 'cat-adult-espaguetes',
-    name: 'Risoto de Camarão',
-    description: 'Arroz arbóreo cremoso com camarões salteados, queijo parmesão e finalizado com raspas de limão siciliano.',
-    price: 54.00,
-    image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-ind-caesar',
+    categoryId: 'cat-pratos-individuais',
+    name: 'Salada Caesar',
+    description: 'Alface americana crocante, tiras de peito de frango grelhado, croutons caseiros e molho caesar com parmesão.',
+    price: 24.00,
+    image: 'https://images.unsplash.com/photo-1550304943-4f24f54ddde9?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'adult',
     sortOrder: 5
   },
   {
-    id: 'dish-ad-esc-carne',
-    categoryId: 'cat-adult-espaguetes',
-    name: 'Escondidinho de Carne',
-    description: 'Carne de sol desfiada e temperada, sob um purê de mandioca cremoso gratinado com queijo coalho.',
+    id: 'dish-ind-escondidinho',
+    categoryId: 'cat-pratos-individuais',
+    name: 'Escondidinho de Carne Seca',
+    description: 'Carne seca desfiada bem temperadinha sob purê cremoso de mandioca artesanal, gratinado com queijo de coalho.',
     price: 36.00,
     image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'adult',
     sortOrder: 6
   },
-
-  // CARDÁPIO ADULTO - Saladas e verduras
   {
-    id: 'dish-ad-sal-mand',
-    categoryId: 'cat-adult-saladas',
-    name: 'Mandioca Gratinada em Cubos',
-    description: 'Mandioca cozida macia, cortada em cubos e gratinada no forno com queijo parmesão.',
-    price: 18.00,
-    image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 1
-  },
-  {
-    id: 'dish-ad-sal-mix',
-    categoryId: 'cat-adult-saladas',
-    name: 'Mix de Folhas com Frutas',
-    description: 'Alface americana, rúcula e agrião acompanhados de fatias de manga, morango e molho de mostarda e mel.',
-    price: 22.00,
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 2
-  },
-  {
-    id: 'dish-ad-sal-bat',
-    categoryId: 'cat-adult-saladas',
-    name: 'Batata Gratinada na Manteiga',
-    description: 'Lâminas de batata assadas na manteiga de ervas e salpicadas com queijo parmesão crocante.',
+    id: 'dish-ind-batsal',
+    categoryId: 'cat-pratos-individuais',
+    name: 'Batsal',
+    description: 'Batatas rústicas fritas com casca, temperadas com sal de ervas secreto da casa e alecrim fresco.',
     price: 19.00,
-    image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 3
-  },
-  {
-    id: 'dish-ad-sal-cen',
-    categoryId: 'cat-adult-saladas',
-    name: 'Fios de Cenoura',
-    description: 'Cenoura fresca cortada em fios finos, temperada com limão e azeite.',
-    price: 9.00,
-    image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 4
-  },
-  {
-    id: 'dish-ad-sal-bet',
-    categoryId: 'cat-adult-saladas',
-    name: 'Fios de Beterraba',
-    description: 'Beterraba crua ralada em fios finos, rica em nutrientes e saborosa.',
-    price: 9.00,
-    image: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 5
-  },
-  {
-    id: 'dish-ad-sal-broc',
-    categoryId: 'cat-adult-saladas',
-    name: 'Brócolis Gratinado na Manteiga',
-    description: 'Buquês de brócolis frescos salteados na manteiga e gratinados com muçarela.',
-    price: 20.00,
-    image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 6
-  },
-  {
-    id: 'dish-ad-sal-pep',
-    categoryId: 'cat-adult-saladas',
-    name: 'Pepino em Rodelas',
-    description: 'Pepino japonês fatiado fininho com toque leve de vinagre de arroz e gergelim.',
-    price: 10.00,
-    image: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 7
-  },
-  {
-    id: 'dish-ad-sal-tom',
-    categoryId: 'cat-adult-saladas',
-    name: 'Tomate com Cebola Roxa',
-    description: 'Tomates maduros fatiados com cebola roxa em rodelas, azeite e orégano.',
-    price: 12.00,
-    image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 8
-  },
-  {
-    id: 'dish-ad-sal-couv',
-    categoryId: 'cat-adult-saladas',
-    name: 'Couve-Flor Gratinada com Ovo',
-    description: 'Couve-flor cozida no vapor envolvida em creme de ovos batidos com temperos e gratinada.',
-    price: 21.00,
-    image: 'https://images.unsplash.com/photo-1568584711271-6c929fb49b60?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 9
-  },
-
-  // CARDÁPIO ADULTO - Carnes
-  {
-    id: 'dish-ad-car-ovo',
-    categoryId: 'cat-adult-carnes',
-    name: 'Ovo Frito',
-    description: 'Ovo caipira com gema mole ou dura, frito no ponto perfeito com uma pitada de flor de sal.',
-    price: 5.00,
-    image: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 1
-  },
-  {
-    id: 'dish-ad-car-fra-pass',
-    categoryId: 'cat-adult-carnes',
-    name: 'Frango a Passarinho ao Molho de Limão',
-    description: 'Pedaços crocantes de frango frito com alho, regados com suco de limão e ervas finas.',
-    price: 29.00,
-    image: 'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 2
-  },
-  {
-    id: 'dish-ad-car-fra-parm',
-    categoryId: 'cat-adult-carnes',
-    name: 'Filé de Frango à Parmigiana',
-    description: 'Filé de frango empanado, coberto com molho pomodoro rústico e muita muçarela gratinada.',
-    price: 36.00,
-    image: 'https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 3
-  },
-  {
-    id: 'dish-ad-car-fra-isca',
-    categoryId: 'cat-adult-carnes',
-    name: 'Isca de Frango ao Molho de Limão',
-    description: 'Tiras de peito de frango grelhadas, envoltas em molho cremoso de limão siciliano.',
-    price: 28.00,
-    image: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 4
-  },
-  {
-    id: 'dish-ad-car-cost',
-    categoryId: 'cat-adult-carnes',
-    name: 'Costelinha ao Molho Barbecue',
-    description: 'Costela suína assada lentamente até soltar do osso, banhada no autêntico molho barbecue defumado.',
-    price: 48.00,
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 5
-  },
-  {
-    id: 'dish-ad-car-bife-parm',
-    categoryId: 'cat-adult-carnes',
-    name: 'Bife à Parmigiana',
-    description: 'Corte bovino macio empanado na farinha panko, regado com molho artesanal de tomate e muçarela gratinada.',
-    price: 44.00,
-    image: 'https://images.unsplash.com/photo-1529692236671-f1f6e9473bfc?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 6
-  },
-  {
-    id: 'dish-ad-car-contra',
-    categoryId: 'cat-adult-carnes',
-    name: 'Contra Filé Acebolado',
-    description: 'Bife de contra filé na chapa servido com generosa porção de cebolas caramelizadas.',
-    price: 42.00,
-    image: 'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 7
-  },
-  {
-    id: 'dish-ad-car-peixe',
-    categoryId: 'cat-adult-carnes',
-    name: 'Filé de Peixe ao Limão',
-    description: 'Filé de peixe branco (tilápia) grelhado com azeite, ervas e regado ao molho de limão.',
-    price: 38.00,
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 8
-  },
-  {
-    id: 'dish-ad-car-suino',
-    categoryId: 'cat-adult-carnes',
-    name: 'Bife Suíno Acebolado',
-    description: 'Corte de pernil suíno grelhado com tempero especial da casa e cebolas salteadas.',
-    price: 32.00,
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 9
-  },
-  {
-    id: 'dish-ad-car-sol',
-    categoryId: 'cat-adult-carnes',
-    name: 'Carne de Sol Acebolada',
-    description: 'Autêntica carne de sol grelhada na manteiga de garrafa com cebola roxa fatiada.',
-    price: 46.00,
-    image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'adult',
-    sortOrder: 10
-  },
-
-  // CARDÁPIO INFANTIL - Guarnições
-  {
-    id: 'dish-kd-arroz-br',
-    categoryId: 'cat-kids-guarnicoes',
-    name: 'Arroz Branco',
-    description: 'Arroz soltinho cozido com temperos suaves pensando nos pequenos.',
-    price: 9.00,
-    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'kids',
-    sortOrder: 1
-  },
-  {
-    id: 'dish-kd-feijao',
-    categoryId: 'cat-kids-guarnicoes',
-    name: 'Feijão Caldo',
-    description: 'Caldinho de feijão saboroso e batido, ideal para crianças.',
-    price: 8.00,
-    image: 'https://images.unsplash.com/photo-1547058886-f14d021c175f?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'kids',
-    sortOrder: 2
-  },
-  {
-    id: 'dish-kd-batata',
-    categoryId: 'cat-kids-guarnicoes',
-    name: 'Batata Frita',
-    description: 'Batatas smile ou palito crocantes e douradas.',
-    price: 12.00,
     image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80',
     active: true,
-    section: 'kids',
-    sortOrder: 3
-  },
-  {
-    id: 'dish-kd-pure',
-    categoryId: 'cat-kids-guarnicoes',
-    name: 'Purê de Batata',
-    description: 'Purê de batata super cremoso, batido com leite e manteiga.',
-    price: 11.00,
-    image: 'https://images.unsplash.com/photo-1619051805355-a3848a60bb01?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'kids',
-    sortOrder: 4
-  },
-  {
-    id: 'dish-kd-panqueca',
-    categoryId: 'cat-kids-guarnicoes',
-    name: 'Panqueca de Frango',
-    description: 'Panqueca macia recheada com frango desfiado cremoso e molho de tomate suave.',
-    price: 16.00,
-    image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'kids',
-    sortOrder: 5
+    section: 'adult',
+    sortOrder: 7
   },
 
-  // CARDÁPIO INFANTIL - Saladas/Verduras
+  // ========================================================
+  // 3. KIDS
+  // ========================================================
   {
-    id: 'dish-kd-sal-desenho',
-    categoryId: 'cat-kids-saladas',
-    name: 'Batata Inglesa em Desenho',
-    description: 'Batatas inglesas cozidas recortadas em formatos divertidos como estrelas e corações.',
-    price: 10.00,
+    id: 'dish-kids-combo1',
+    categoryId: 'cat-kids',
+    name: 'Combo 1 — Prato Montável Infantil',
+    description: 'Monte a refeição perfeita para os pequenos escolhendo a proteína principal, acompanhamentos suaves e saladas lúdicas.',
+    price: 26.00,
     image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'kids',
-    sortOrder: 1
+    sortOrder: 1,
+    isCustomizable: true,
+    customizationOptions: [
+      {
+        id: 'kids-meat',
+        title: 'Escolha 1 Proteína',
+        min: 1,
+        max: 1,
+        items: [
+          { name: 'Nugget de frango caseiro' },
+          { name: 'Bife de Contra Filé em tiras' },
+          { name: 'Isca de Frango grelhada' }
+        ]
+      },
+      {
+        id: 'kids-sides',
+        title: 'Escolha até 3 Acompanhamentos',
+        min: 1,
+        max: 3,
+        items: [
+          { name: 'Arroz branco' },
+          { name: 'Caldinho de feijão' },
+          { name: 'Purê de batata cremoso' },
+          { name: 'Batata frita suave' }
+        ]
+      },
+      {
+        id: 'kids-salads',
+        title: 'Escolha até 3 Saladas',
+        min: 0,
+        max: 3,
+        items: [
+          { name: 'Batata inglesa em desenhos' },
+          { name: 'Cenoura em formatos divertidos' },
+          { name: 'Beterraba em fios coloridos' }
+        ]
+      }
+    ]
   },
   {
-    id: 'dish-kd-cen-desenho',
-    categoryId: 'cat-kids-saladas',
-    name: 'Cenoura em Desenhos',
-    description: 'Cenoura cozida no vapor cortada de forma lúdica.',
-    price: 9.00,
-    image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-kids-combo2',
+    categoryId: 'cat-kids',
+    name: 'Combo 2 — Hambúrguer Infantil',
+    description: 'Hambúrguer suculento de blend artesanal no mini pão brioche com queijo prato derretido. Acompanha batata frita smile crocante e anéis de cebola dourados (Onion rings).',
+    price: 28.00,
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'kids',
     sortOrder: 2
   },
+
+  // ========================================================
+  // 4. BEBIDAS
+  // ========================================================
   {
-    id: 'dish-kd-bet-fios',
-    categoryId: 'cat-kids-saladas',
-    name: 'Beterraba em Fios',
-    description: 'Beterraba ralada bem fininha para os pequenos experimentarem cores no prato.',
-    price: 9.00,
-    image: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-beb-sucodetox',
+    categoryId: 'cat-bebidas',
+    name: 'Suco Funcional Detox',
+    description: 'Suco natural feito na hora com couve fresca, abacaxi, gengibre e hortelã. Sem adição de açúcar.',
+    price: 9.90,
+    image: 'https://images.unsplash.com/photo-1610970881699-44a5587caa90?auto=format&fit=crop&w=600&q=80',
     active: true,
-    section: 'kids',
-    sortOrder: 3
+    section: 'adult',
+    sortOrder: 1,
+    subSection: 'Sucos Funcionais',
+    sizeOrWeight: '350ml'
+  },
+  {
+    id: 'dish-beb-sucoenergia',
+    categoryId: 'cat-bebidas',
+    name: 'Suco Funcional Energia',
+    description: 'Suco antioxidante preparado com laranja espremida, cenoura ralada e beterraba natural.',
+    price: 10.90,
+    image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 2,
+    subSection: 'Sucos Funcionais',
+    sizeOrWeight: '350ml'
+  },
+  // Sucos de Polpa
+  {
+    id: 'dish-beb-polp-acerola',
+    categoryId: 'cat-bebidas',
+    name: 'Suco de Polpa (Acerola)',
+    description: 'Suco de polpa concentrada rica em vitamina C.',
+    price: 7.00,
+    image: 'https://images.unsplash.com/photo-1506806732259-39c2d0268443?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 3,
+    subSection: 'Sucos de Polpa'
+  },
+  {
+    id: 'dish-beb-polp-caju',
+    categoryId: 'cat-bebidas',
+    name: 'Suco de Polpa (Caju)',
+    description: 'Saboroso e encorpado suco de polpa de caju natural.',
+    price: 7.00,
+    image: 'https://images.unsplash.com/photo-1506806732259-39c2d0268443?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 4,
+    subSection: 'Sucos de Polpa'
+  },
+  {
+    id: 'dish-beb-polp-maracuja',
+    categoryId: 'cat-bebidas',
+    name: 'Suco de Polpa (Maracujá)',
+    description: 'Suco relaxante com a tradicional acidez do maracujá.',
+    price: 7.00,
+    image: 'https://images.unsplash.com/photo-1506806732259-39c2d0268443?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 5,
+    subSection: 'Sucos de Polpa'
+  },
+  // Refrigerantes
+  {
+    id: 'dish-beb-refri-coca',
+    categoryId: 'cat-bebidas',
+    name: 'Coca-Cola (Lata)',
+    description: 'Refrigerante gelado em lata.',
+    price: 6.00,
+    image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 6,
+    subSection: 'Refrigerantes'
+  },
+  {
+    id: 'dish-beb-refri-guarana',
+    categoryId: 'cat-bebidas',
+    name: 'Guaraná Antarctica (Lata)',
+    description: 'Clássico refrigerante sabor guaraná da floresta amazônica.',
+    price: 6.00,
+    image: 'https://images.unsplash.com/photo-1527960655-2674e306da6c?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 7,
+    subSection: 'Refrigerantes'
+  },
+  // Águas
+  {
+    id: 'dish-beb-agua-natural',
+    categoryId: 'cat-bebidas',
+    name: 'Água Mineral sem Gás',
+    description: 'Água mineral natural fresca em garrafa.',
+    price: 4.00,
+    image: 'https://images.unsplash.com/photo-1608885898957-a59911eb9004?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 8,
+    subSection: 'Águas'
+  },
+  {
+    id: 'dish-beb-agua-gas',
+    categoryId: 'cat-bebidas',
+    name: 'Água Mineral com Gás',
+    description: 'Água gaseificada cristalina e gelada.',
+    price: 4.50,
+    image: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=600&q=80',
+    active: true,
+    section: 'adult',
+    sortOrder: 9,
+    subSection: 'Águas'
   },
 
-  // CARDÁPIO INFANTIL - Carnes
+  // ========================================================
+  // 5. SOBREMESAS
+  // ========================================================
   {
-    id: 'dish-kd-nugget',
-    categoryId: 'cat-kids-carnes',
-    name: 'Nugget',
-    description: 'Nuggets de frango caseiros e assados, crocantes e saudáveis.',
-    price: 14.00,
-    image: 'https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-sob-pudim',
+    categoryId: 'cat-sobremesas',
+    name: 'Pudim de Leite Condensado',
+    description: 'Cremoso pudim de leite artesanal super macio, coberto com calda brilhante de caramelo rústico.',
+    price: 12.00,
+    image: 'https://images.unsplash.com/photo-1528975604072-b4dc47a18e06?auto=format&fit=crop&w=600&q=80',
     active: true,
-    section: 'kids',
-    sortOrder: 1
+    section: 'adult',
+    sortOrder: 1,
+    sizeOrWeight: '150g'
   },
   {
-    id: 'dish-kd-bife-contra',
-    categoryId: 'cat-kids-carnes',
-    name: 'Bife de Contra Filé',
-    description: 'Bife pequeno de contra filé macio e grelhado, cortado em tiras.',
-    price: 22.00,
-    image: 'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-sob-petit',
+    categoryId: 'cat-sobremesas',
+    name: 'Petit Gâteau',
+    description: 'Bolinho quente de chocolate belga com recheio cremoso escorrendo, acompanhado de uma bola de sorvete de creme e raspas de chocolate.',
+    price: 18.00,
+    image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=600&q=80',
     active: true,
-    section: 'kids',
-    sortOrder: 2
+    section: 'adult',
+    sortOrder: 2,
+    sizeOrWeight: '180g'
   },
   {
-    id: 'dish-kd-isca-fra',
-    categoryId: 'cat-kids-carnes',
-    name: 'Isca de Frango',
-    description: 'Tiras de peito de frango grelhadas ou empanadas com crosta suave.',
-    price: 15.00,
-    image: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-sob-mousse',
+    categoryId: 'cat-sobremesas',
+    name: 'Mousse de Maracujá',
+    description: 'Receita caseira e aerada com o equilíbrio perfeito entre doce e azedinho do maracujá fresco.',
+    price: 10.00,
+    image: 'https://images.unsplash.com/photo-1516685018646-549198525c1b?auto=format&fit=crop&w=600&q=80',
     active: true,
-    section: 'kids',
-    sortOrder: 3
+    section: 'adult',
+    sortOrder: 3,
+    sizeOrWeight: '120g'
   },
 
-  // CARDÁPIO INFANTIL - Frutas picadas
+  // ========================================================
+  // 6. EXTRAS / FRUTAS
+  // ========================================================
   {
-    id: 'dish-kd-manga',
-    categoryId: 'cat-kids-frutas',
-    name: 'Manga',
-    description: 'Cubos de manga palmer doce, fresquinha e gelada.',
+    id: 'dish-ext-manga',
+    categoryId: 'cat-extras-frutas',
+    name: 'Porção de Manga Picada',
+    description: 'Cubinhos gelados de manga Palmer doce e fresquinha.',
     price: 8.00,
     image: 'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&q=80',
     active: true,
@@ -518,60 +473,38 @@ export const INITIAL_DISHES: Dish[] = [
     sortOrder: 1
   },
   {
-    id: 'dish-kd-banana',
-    categoryId: 'cat-kids-frutas',
-    name: 'Banana',
-    description: 'Banana cortada em rodelas com um salpico opcional de canela.',
-    price: 6.00,
-    image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-ext-melancia',
+    categoryId: 'cat-extras-frutas',
+    name: 'Porção de Melancia',
+    description: 'Fatias doces de melancia fresca e sem sementes para um snack saudável.',
+    price: 7.00,
+    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'kids',
     sortOrder: 2
   },
   {
-    id: 'dish-kd-melancia',
-    categoryId: 'cat-kids-frutas',
-    name: 'Melancia',
-    description: 'Fatias de melancia sem sementes, refrescantes e docinhas.',
-    price: 7.00,
-    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-ext-batata',
+    categoryId: 'cat-extras-frutas',
+    name: 'Porção Extra de Batata Frita',
+    description: 'Uma porção inteira extra de batatas fritas sequinhas e crocantes.',
+    price: 12.00,
+    image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80',
     active: true,
-    section: 'kids',
+    section: 'adult',
     sortOrder: 3
   },
   {
-    id: 'dish-kd-maca',
-    categoryId: 'cat-kids-frutas',
-    name: 'Maçã',
-    description: 'Fatias de maçã argentina crocantes, sem casca e prontas para comer.',
-    price: 7.00,
-    image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=600&q=80',
+    id: 'dish-ext-onion',
+    categoryId: 'cat-extras-frutas',
+    name: 'Porção de Onion Rings',
+    description: 'Anéis de cebola gigantes empanados e fritos até atingir a máxima crocância.',
+    price: 14.00,
+    image: 'https://images.unsplash.com/photo-1639024471283-2bc7b3c6a267?auto=format&fit=crop&w=600&q=80',
     active: true,
-    section: 'kids',
+    section: 'adult',
     sortOrder: 4
-  },
-  {
-    id: 'dish-kd-laranja',
-    categoryId: 'cat-kids-frutas',
-    name: 'Laranja',
-    description: 'Gomos de laranja pera cortados sem sementes e sem pele branca.',
-    price: 6.00,
-    image: 'https://images.unsplash.com/photo-1547514701-42782101795e?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'kids',
-    sortOrder: 5
-  },
-  {
-    id: 'dish-kd-pera',
-    categoryId: 'cat-kids-frutas',
-    name: 'Pera',
-    description: 'Cubinhos de pera macia e sumarenta.',
-    price: 8.00,
-    image: 'https://images.unsplash.com/photo-1514756331096-242fdeb70d4a?auto=format&fit=crop&w=600&q=80',
-    active: true,
-    section: 'kids',
-    sortOrder: 6
-  },
+  }
 ];
 
 export const INITIAL_SETTINGS: SystemSettings = {

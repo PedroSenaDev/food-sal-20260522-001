@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Dish } from '../lib/mockData';
-import { useApp } from '../context/AppContext';
-import { X, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Dish, CustomizationGroup } from '../lib/mockData';
+import { useApp, SelectedCustomization } from '../context/AppContext';
+import { X, ChevronRight, CheckCircle, Info } from 'lucide-react';
 
 interface MenuCardProps {
   dish: Dish;
@@ -11,11 +11,130 @@ interface MenuCardProps {
 }
 
 export default function MenuCard({ dish, categoryName }: MenuCardProps) {
-  const { settings } = useApp();
+  const { settings, addToCart } = useApp();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Customization selection state
+  // key: Group ID, value: array of chosen item names
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [notes, setNotes] = useState('');
+  const [currentPrice, setCurrentPrice] = useState(dish.price);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [addedAnimation, setAddedAnimation] = useState(false);
 
   const formatPrice = (val: number) => {
     return `${settings.currencySymbol} ${val.toFixed(2)}`;
+  };
+
+  // Reset customizations when modal opens/closes
+  useEffect(() => {
+    if (isDetailOpen) {
+      const initialSelections: Record<string, string[]> = {};
+      if (dish.isCustomizable && dish.customizationOptions) {
+        dish.customizationOptions.forEach(group => {
+          // pre-select fixed options if min requirement and items match
+          if (group.min === group.max && group.items.length === group.min) {
+            initialSelections[group.id] = group.items.map(item => item.name);
+          } else {
+            initialSelections[group.id] = [];
+          }
+        });
+      }
+      setSelections(initialSelections);
+      setNotes('');
+      setCurrentPrice(dish.price);
+      setErrorMsg('');
+    }
+  }, [isDetailOpen, dish]);
+
+  // Recalculate price dynamically when options are selected/deselected
+  useEffect(() => {
+    if (!dish.isCustomizable || !dish.customizationOptions) return;
+
+    let extraPrice = 0;
+    Object.entries(selections).forEach(([groupId, items]) => {
+      const group = dish.customizationOptions?.find(g => g.id === groupId);
+      if (group) {
+        items.forEach(itemName => {
+          const matchedItem = group.items.find(i => i.name === itemName);
+          if (matchedItem && matchedItem.price) {
+            extraPrice += matchedItem.price;
+          }
+        });
+      }
+    });
+
+    setCurrentPrice(dish.price + extraPrice);
+  }, [selections, dish]);
+
+  const handleOptionToggle = (group: CustomizationGroup, itemName: string, isRadio: boolean) => {
+    const currentGroupSelections = selections[group.id] || [];
+
+    if (isRadio) {
+      setSelections(prev => ({
+        ...prev,
+        [group.id]: [itemName]
+      }));
+      setErrorMsg('');
+    } else {
+      const exists = currentGroupSelections.includes(itemName);
+      if (exists) {
+        setSelections(prev => ({
+          ...prev,
+          [group.id]: currentGroupSelections.filter(n => n !== itemName)
+        }));
+      } else {
+        if (currentGroupSelections.length < group.max) {
+          setSelections(prev => ({
+            ...prev,
+            [group.id]: [...currentGroupSelections, itemName]
+          }));
+          setErrorMsg('');
+        } else {
+          setErrorMsg(`Máximo de ${group.max} itens para "${group.title}" atingido!`);
+        }
+      }
+    }
+  };
+
+  const handleAddToCart = () => {
+    // Validate required selections
+    if (dish.isCustomizable && dish.customizationOptions) {
+      for (const group of dish.customizationOptions) {
+        const chosen = selections[group.id] || [];
+        if (chosen.length < group.min) {
+          setErrorMsg(`Por favor, selecione pelo menos ${group.min} opção(ões) em "${group.title}"`);
+          return;
+        }
+      }
+    }
+
+    // Prepare customized items structure
+    const finalizedCustoms: SelectedCustomization[] = [];
+    if (dish.isCustomizable && dish.customizationOptions) {
+      dish.customizationOptions.forEach(group => {
+        const chosenNames = selections[group.id] || [];
+        if (chosenNames.length > 0) {
+          const itemsWithPrice = chosenNames.map(name => {
+            const match = group.items.find(i => i.name === name);
+            return { name, price: match?.price };
+          });
+          finalizedCustoms.push({
+            groupTitle: group.title,
+            items: itemsWithPrice
+          });
+        }
+      });
+    }
+
+    addToCart(dish, 1, notes, finalizedCustoms, currentPrice);
+    
+    // Play success feedback
+    setAddedAnimation(true);
+    setTimeout(() => {
+      setAddedAnimation(false);
+      setIsDetailOpen(false);
+    }, 1200);
   };
 
   return (
@@ -31,7 +150,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
             <img
               src={dish.image}
               alt={dish.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
               loading="lazy"
             />
           ) : (
@@ -43,49 +162,61 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
           {/* Price Tag Overlay */}
           <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-stone-900/80 backdrop-blur-sm text-white font-bold text-sm tracking-wide shadow-md">
             {formatPrice(dish.price)}
+            {dish.isCustomizable && <span className="text-[9px] font-semibold text-brand-beige block leading-none mt-0.5">Monte seu prato</span>}
           </div>
 
-          {/* Section Indicator (Kids / Adult) */}
-          {dish.section === 'kids' && (
+          {/* Section Indicator */}
+          {dish.isCustomizable ? (
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-brand-red text-white text-[10px] font-bold uppercase tracking-wider shadow">
+              Personalizável ✨
+            </div>
+          ) : dish.categoryId === 'cat-kids' ? (
             <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-brand-darkred text-white text-[10px] font-bold uppercase tracking-wider shadow">
               Infantil 👶
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Dish Information */}
         <div className="flex flex-col flex-1 p-4">
-          {categoryName && (
-            <span className="text-[10px] font-bold tracking-widest text-brand-red uppercase mb-1">
-              {categoryName}
-            </span>
-          )}
+          <div className="flex justify-between items-start gap-2 mb-1">
+            {categoryName && (
+              <span className="text-[9px] font-bold tracking-widest text-brand-red uppercase">
+                {categoryName}
+              </span>
+            )}
+            {dish.sizeOrWeight && (
+              <span className="text-[10px] font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-md">
+                {dish.sizeOrWeight}
+              </span>
+            )}
+          </div>
           <h3 className="font-serif text-lg font-bold text-stone-900 group-hover:text-brand-red transition-colors duration-200 line-clamp-1">
             {dish.name}
           </h3>
           <p className="text-xs text-stone-500 mt-1.5 flex-1 line-clamp-2 leading-relaxed">
-            {dish.description || 'Nenhum ingrediente especial adicionado.'}
+            {dish.description}
           </p>
 
           {/* Bottom Card Control */}
           <div className="mt-4 flex items-center justify-between pt-3 border-t border-stone-100">
-            <span className="text-xs font-semibold text-stone-400 group-hover:text-brand-red transition-colors">
-              Ver mais detalhes
+            <span className="text-xs font-bold text-brand-red group-hover:text-brand-darkred transition-colors">
+              {dish.isCustomizable ? 'Montar meu pedido' : 'Adicionar ao pedido'}
             </span>
-            <ChevronRight size={14} className="text-stone-450 group-hover:translate-x-0.5 transition-transform" />
+            <ChevronRight size={14} className="text-brand-red group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
       </div>
 
-      {/* Detail Modal */}
+      {/* Detail / Customization Modal */}
       {isDetailOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div 
-            className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-10 duration-300"
+            className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-10 duration-300 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Image Header */}
-            <div className="relative h-64 bg-stone-100">
+            <div className="relative h-48 sm:h-56 bg-stone-100 shrink-0">
               {dish.image ? (
                 <img
                   src={dish.image}
@@ -100,44 +231,162 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
               {/* Close Button */}
               <button
                 onClick={() => setIsDetailOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-full bg-stone-950/50 hover:bg-stone-950/80 text-white backdrop-blur-sm shadow-md transition-all cursor-pointer"
+                className="absolute top-4 right-4 p-2 rounded-full bg-stone-950/50 hover:bg-stone-950/80 text-white backdrop-blur-sm shadow-md transition-all cursor-pointer z-10"
               >
                 <X size={20} />
               </button>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-6 right-6 text-white">
+                <span className="text-[10px] font-bold tracking-widest text-brand-beige uppercase">
+                  {categoryName}
+                </span>
+                <h2 className="font-serif text-xl sm:text-2xl font-bold mt-0.5">
+                  {dish.name}
+                </h2>
+              </div>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  {categoryName && (
-                    <span className="text-xs font-bold tracking-widest text-brand-red uppercase">
-                      {categoryName}
-                    </span>
-                  )}
-                  <h2 className="font-serif text-2xl font-bold text-stone-900 mt-1">
-                    {dish.name}
-                  </h2>
-                </div>
-                <div className="text-xl font-bold text-brand-red whitespace-nowrap">
-                  {formatPrice(dish.price)}
-                </div>
-              </div>
-
-              <p className="text-sm text-stone-600 mt-3 leading-relaxed">
-                {dish.description || 'Prato preparado com ingredientes selecionados de alta qualidade.'}
+            {/* Modal Scrollable Body */}
+            <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              
+              {/* Base Description */}
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-medium">
+                {dish.description}
               </p>
 
-              {/* Action Area */}
-              <div className="mt-6 pt-5 border-t border-stone-100 flex justify-end">
+              {/* Customization Options Container */}
+              {dish.isCustomizable && dish.customizationOptions && (
+                <div className="space-y-6 pt-2 border-t border-stone-100">
+                  {dish.customizationOptions.map((group) => {
+                    const chosen = selections[group.id] || [];
+                    const isRadio = group.min === 1 && group.max === 1;
+
+                    return (
+                      <div key={group.id} className="space-y-3 p-4 bg-stone-50 rounded-2xl border border-stone-150">
+                        {/* Option group header */}
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-xs font-bold text-stone-850 block">{group.title}</span>
+                            <span className="text-[10px] text-stone-500 font-semibold">
+                              {group.min > 0 
+                                ? `Obrigatório • Escolha ${group.min === group.max ? group.min : `de ${group.min} a ${group.max}`}` 
+                                : `Opcional • Escolha até ${group.max}`}
+                            </span>
+                          </div>
+                          
+                          {/* Checked Pill */}
+                          <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            chosen.length >= group.min && chosen.length <= group.max
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {chosen.length} de {group.max}
+                          </div>
+                        </div>
+
+                        {/* List of custom options */}
+                        <div className="space-y-2">
+                          {group.items.map((item) => {
+                            const isSelected = chosen.includes(item.name);
+                            return (
+                              <label
+                                key={item.name}
+                                onClick={() => handleOptionToggle(group, item.name, isRadio)}
+                                className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-white border-brand-red ring-1 ring-brand-red shadow-sm'
+                                    : 'bg-white border-stone-200 hover:border-stone-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  {/* Custom Checkbox/Radio graphic */}
+                                  <div className={`h-5 w-5 rounded-md flex items-center justify-center shrink-0 border transition-all ${
+                                    isSelected
+                                      ? 'bg-brand-red border-brand-red text-white'
+                                      : 'border-stone-300 bg-white'
+                                  }`}>
+                                    {isSelected && <span className="text-[10px] font-bold">✓</span>}
+                                  </div>
+                                  <span className="text-xs font-bold text-stone-800">{item.name}</span>
+                                </div>
+
+                                {item.price && (
+                                  <span className="text-xs font-bold text-brand-red">
+                                    + {formatPrice(item.price)}
+                                  </span>
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Cooking notes */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-stone-750 uppercase tracking-wider flex items-center gap-1.5">
+                  <Info size={14} className="text-brand-red" />
+                  <span>Observações (Opcional)</span>
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Ex: Ponto da carne, sem salada, tirar cebola, etc."
+                  rows={2}
+                  maxLength={160}
+                  className="w-full p-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs text-stone-850 resize-none bg-stone-50/50"
+                />
+              </div>
+
+              {/* Errors notifications */}
+              {errorMsg && (
+                <div className="p-3 bg-red-50 border border-red-200 text-xs text-red-700 rounded-xl font-bold">
+                  ⚠️ {errorMsg}
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Sticky Footer */}
+            <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-4 shrink-0">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Total</span>
+                <span className="text-lg font-extrabold text-stone-900 leading-tight">
+                  {formatPrice(currentPrice)}
+                </span>
+              </div>
+
+              <div className="flex gap-2">
                 <button
                   onClick={() => setIsDetailOpen(false)}
-                  className="py-2.5 px-6 rounded-xl bg-brand-red hover:bg-brand-darkred text-white font-bold text-sm tracking-wide shadow-md shadow-brand-red/10 cursor-pointer active:scale-98 transition-all"
+                  className="py-3 px-4 rounded-xl border border-stone-250 hover:bg-stone-100 text-stone-600 font-bold text-xs uppercase tracking-wider cursor-pointer transition-all"
                 >
-                  Fechar Detalhes
+                  Voltar
+                </button>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={addedAnimation}
+                  className={`py-3.5 px-6 rounded-xl text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center gap-1.5 transition-all duration-300 ${
+                    addedAnimation 
+                      ? 'bg-emerald-600 shadow-emerald-200' 
+                      : 'bg-brand-red hover:bg-brand-darkred shadow-brand-red/10 cursor-pointer active:scale-98'
+                  }`}
+                >
+                  {addedAnimation ? (
+                    <>
+                      <CheckCircle size={16} />
+                      <span>Adicionado!</span>
+                    </>
+                  ) : (
+                    <span>Adicionar ao Pedido</span>
+                  )}
                 </button>
               </div>
             </div>
+
           </div>
         </div>
       )}

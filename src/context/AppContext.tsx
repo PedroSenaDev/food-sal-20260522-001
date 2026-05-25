@@ -14,10 +14,18 @@ import {
   initializeLocalStorage
 } from '../lib/db';
 
+export interface SelectedCustomization {
+  groupTitle: string;
+  items: { name: string; price?: number }[];
+}
+
 export interface CartItem {
+  id: string; // Dynamic unique ID for cart items to allow adding same dish with different options
   dish: Dish;
   quantity: number;
   notes?: string;
+  customizations?: SelectedCustomization[];
+  customPrice?: number;
 }
 
 interface AppContextType {
@@ -33,9 +41,9 @@ interface AppContextType {
   
   // Cart
   cart: CartItem[];
-  addToCart: (dish: Dish, quantity?: number, notes?: string) => void;
-  removeFromCart: (dishId: string) => void;
-  updateCartQuantity: (dishId: string, quantity: number) => void;
+  addToCart: (dish: Dish, quantity?: number, notes?: string, customizations?: SelectedCustomization[], customPrice?: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  updateCartQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
   cartCount: number;
@@ -125,45 +133,65 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSelectedCategory(null);
   }, [activeSection]);
 
+  // Helper to create a signature key of selected options to aggregate duplicates in cart
+  const getCustomizationKey = (customizations?: SelectedCustomization[]) => {
+    if (!customizations) return '';
+    return JSON.stringify(customizations.map(c => ({
+      g: c.groupTitle,
+      i: c.items.map(it => it.name).sort()
+    })).sort((a, b) => a.g.localeCompare(b.g)));
+  };
+
   // Cart operations
-  const addToCart = (dish: Dish, quantity = 1, notes = '') => {
+  const addToCart = (dish: Dish, quantity = 1, notes = '', customizations?: SelectedCustomization[], customPrice?: number) => {
+    const targetPrice = customPrice !== undefined ? customPrice : dish.price;
+    const currentCustomKey = getCustomizationKey(customizations);
+
     setCart(prev => {
-      const existingIndex = prev.findIndex(item => item.dish.id === dish.id);
+      // Find item with same dish AND same custom selections and notes
+      const existingIndex = prev.findIndex(item => 
+        item.dish.id === dish.id && 
+        getCustomizationKey(item.customizations) === currentCustomKey &&
+        (item.notes || '') === (notes || '')
+      );
+
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex].quantity += quantity;
-        if (notes) {
-          updated[existingIndex].notes = notes;
-        }
         return updated;
       }
-      return [...prev, { dish, quantity, notes }];
+
+      // Unique dynamic ID for cart item
+      const cartItemId = `${dish.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      return [...prev, { id: cartItemId, dish, quantity, notes, customizations, customPrice: targetPrice }];
     });
   };
 
-  const removeFromCart = (dishId: string) => {
-    setCart(prev => prev.filter(item => item.dish.id !== dishId));
+  const removeFromCart = (cartItemId: string) => {
+    setCart(prev => prev.filter(item => item.id !== cartItemId));
   };
 
-  const updateCartQuantity = (dishId: string, quantity: number) => {
+  const updateCartQuantity = (cartItemId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(dishId);
+      removeFromCart(cartItemId);
       return;
     }
     setCart(prev => 
-      prev.map(item => item.dish.id === dishId ? { ...item, quantity } : item)
+      prev.map(item => item.id === cartItemId ? { ...item, quantity } : item)
     );
   };
 
   const clearCart = () => setCart([]);
 
-  const cartTotal = cart.reduce((sum, item) => sum + (item.dish.price * item.quantity), 0);
+  const cartTotal = cart.reduce((sum, item) => {
+    const price = item.customPrice !== undefined ? item.customPrice : item.dish.price;
+    return sum + (price * item.quantity);
+  }, 0);
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Admin login
   const loginAdmin = (password: string): boolean => {
-    // Elegant fallback: default password is admin123 or whatever they want.
-    // In production this can be hooked to Supabase Auth, but this is standard, elegant, and secure.
     if (password === 'admin123' || password === 'foodsal2026') {
       setIsAdminLoggedIn(true);
       if (typeof window !== 'undefined') {
@@ -198,7 +226,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const removeCategory = async (id: string) => {
     await dbDeleteCategory(id);
     setCategories(prev => prev.filter(c => c.id !== id));
-    // Cascade delete dishes in local state
     setDishes(prev => prev.filter(d => d.categoryId !== id));
   };
 
