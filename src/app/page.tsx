@@ -118,8 +118,8 @@ export default function Home() {
             )}
           </div>
         ) : selectedCategory ? (
-          // Individual category display
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
+          // Individual category display (Now 2 columns on mobile!)
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 animate-in fade-in duration-300">
             {filteredDishes.map(dish => {
               const category = categories.find(c => c.id === dish.categoryId);
               return (
@@ -132,24 +132,24 @@ export default function Home() {
             })}
           </div>
         ) : (
-          // Organized display: render section-by-section with header titles
+          // Organized display: render section-by-section (Now 2 columns on mobile!)
           <div className="space-y-12 animate-in fade-in duration-300">
             {categories.map(category => {
               const categoryDishes = filteredDishes.filter(d => d.categoryId === category.id);
               if (categoryDishes.length === 0) return null;
 
               return (
-                <div key={category.id} className="space-y-4">
-                  <div className="flex items-center gap-3 border-b border-stone-200 pb-2">
-                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
+                <div key={category.id} className="space-y-5">
+                  <div className="flex items-baseline gap-3 border-b border-stone-200/60 pb-3">
+                    <h2 className="font-serif italic font-normal text-2xl sm:text-3.5xl text-stone-900 tracking-wide">
                       {category.name}
                     </h2>
-                    <span className="text-[10px] font-bold bg-brand-red/10 text-brand-red px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      {categoryDishes.length} {categoryDishes.length === 1 ? 'Item' : 'Itens'}
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                      ({categoryDishes.length} {categoryDishes.length === 1 ? 'item' : 'itens'})
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                     {categoryDishes.map(dish => (
                       <MenuCard 
                         key={dish.id} 

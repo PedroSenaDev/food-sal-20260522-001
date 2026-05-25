@@ -142,7 +142,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       {/* Dish Card */}
       <div 
         onClick={() => setIsDetailOpen(true)}
-        className="group relative flex flex-col bg-white rounded-2xl overflow-hidden border border-stone-200/50 hover:border-brand-red/20 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+        className="group relative flex flex-col bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-stone-200/50 hover:border-brand-red/20 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
       >
         {/* Dish Image Container */}
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
@@ -150,60 +150,59 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
             <img
               src={dish.image}
               alt={dish.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+              className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500 ease-out"
               loading="lazy"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-300">
-              <span className="font-serif italic text-lg text-stone-400">FoodSal</span>
+              <span className="font-serif italic text-sm text-stone-400">FoodSal</span>
             </div>
           )}
           
           {/* Price Tag Overlay */}
-          <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-stone-900/80 backdrop-blur-sm text-white font-bold text-sm tracking-wide shadow-md">
+          <div className="absolute bottom-2 right-2 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-stone-900/80 backdrop-blur-sm text-white font-bold text-xs sm:text-sm tracking-wide shadow-md">
             {formatPrice(dish.price)}
-            {dish.isCustomizable && <span className="text-[9px] font-semibold text-brand-beige block leading-none mt-0.5">Monte seu prato</span>}
           </div>
 
           {/* Section Indicator */}
           {dish.isCustomizable ? (
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-brand-red text-white text-[10px] font-bold uppercase tracking-wider shadow">
-              Personalizável ✨
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-brand-red text-white text-[9px] font-bold uppercase tracking-wider shadow">
+              Personalizável
             </div>
           ) : dish.categoryId === 'cat-kids' ? (
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-brand-darkred text-white text-[10px] font-bold uppercase tracking-wider shadow">
-              Infantil 👶
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-brand-darkred/90 text-white text-[9px] font-bold uppercase tracking-wider shadow">
+              Kids
             </div>
           ) : null}
         </div>
 
         {/* Dish Information */}
-        <div className="flex flex-col flex-1 p-4">
-          <div className="flex justify-between items-start gap-2 mb-1">
+        <div className="flex flex-col flex-1 p-3 sm:p-4">
+          <div className="flex justify-between items-start gap-1.5 mb-1">
             {categoryName && (
-              <span className="text-[9px] font-bold tracking-widest text-brand-red uppercase">
+              <span className="text-[9px] font-bold tracking-widest text-brand-red/80 uppercase truncate max-w-full">
                 {categoryName}
               </span>
             )}
             {dish.sizeOrWeight && (
-              <span className="text-[10px] font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-md">
+              <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-md shrink-0">
                 {dish.sizeOrWeight}
               </span>
             )}
           </div>
-          <h3 className="font-serif text-lg font-bold text-stone-900 group-hover:text-brand-red transition-colors duration-200 line-clamp-1">
+          <h3 className="font-serif text-sm sm:text-lg font-bold text-stone-900 group-hover:text-brand-red transition-colors duration-200 line-clamp-1 leading-snug">
             {dish.name}
           </h3>
-          <p className="text-xs text-stone-500 mt-1.5 flex-1 line-clamp-2 leading-relaxed">
+          <p className="text-[11px] sm:text-xs text-stone-500 mt-1 flex-1 line-clamp-2 sm:line-clamp-2 leading-relaxed">
             {dish.description}
           </p>
 
           {/* Bottom Card Control */}
-          <div className="mt-4 flex items-center justify-between pt-3 border-t border-stone-100">
-            <span className="text-xs font-bold text-brand-red group-hover:text-brand-darkred transition-colors">
-              {dish.isCustomizable ? 'Montar meu pedido' : 'Adicionar ao pedido'}
+          <div className="mt-3 flex items-center justify-between pt-2 border-t border-stone-100">
+            <span className="text-[10px] sm:text-xs font-bold text-brand-red group-hover:text-brand-darkred transition-colors">
+              {dish.isCustomizable ? 'Personalizar' : 'Adicionar'}
             </span>
-            <ChevronRight size={14} className="text-brand-red group-hover:translate-x-0.5 transition-transform" />
+            <ChevronRight size={12} className="text-brand-red group-hover:translate-x-0.5 transition-transform shrink-0" />
           </div>
         </div>
       </div>

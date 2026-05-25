@@ -43,12 +43,12 @@ export interface SystemSettings {
 }
 
 export const INITIAL_CATEGORIES: Category[] = [
-  { id: 'cat-monte-seu-pedido', name: 'Monte seu Pedido 🍳', section: 'adult', sortOrder: 1 },
-  { id: 'cat-pratos-individuais', name: 'Pratos Individuais 🍽️', section: 'adult', sortOrder: 2 },
-  { id: 'cat-kids', name: 'Kids 👶', section: 'adult', sortOrder: 3 },
-  { id: 'cat-bebidas', name: 'Bebidas 🥤', section: 'adult', sortOrder: 4 },
-  { id: 'cat-sobremesas', name: 'Sobremesas 🍰', section: 'adult', sortOrder: 5 },
-  { id: 'cat-extras-frutas', name: 'Extras / Frutas 🍎', section: 'adult', sortOrder: 6 },
+  { id: 'cat-monte-seu-pedido', name: 'Monte seu Pedido', section: 'adult', sortOrder: 1 },
+  { id: 'cat-pratos-individuais', name: 'Pratos Individuais', section: 'adult', sortOrder: 2 },
+  { id: 'cat-kids', name: 'Kids', section: 'adult', sortOrder: 3 },
+  { id: 'cat-bebidas', name: 'Bebidas', section: 'adult', sortOrder: 4 },
+  { id: 'cat-sobremesas', name: 'Sobremesas', section: 'adult', sortOrder: 5 },
+  { id: 'cat-extras-frutas', name: 'Extras / Frutas', section: 'adult', sortOrder: 6 },
 ];
 
 export const INITIAL_DISHES: Dish[] = [
@@ -244,7 +244,7 @@ export const INITIAL_DISHES: Dish[] = [
   {
     id: 'dish-kids-combo1',
     categoryId: 'cat-kids',
-    name: 'Combo 1 — Prato Montável Infantil',
+    name: 'Combo 1 — Prato Montável',
     description: 'Monte a refeição perfeita para os pequenos escolhendo a proteína principal, acompanhamentos suaves e saladas lúdicas.',
     price: 26.00,
     image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80',
