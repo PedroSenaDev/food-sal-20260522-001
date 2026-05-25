@@ -37,13 +37,12 @@ export default function DishCrud() {
   // Customizable attributes
   const [isCustomizable, setIsCustomizable] = useState(false);
   const [customizationOptions, setCustomizationOptions] = useState<CustomizationGroup[]>([]);
-  const [subSection, setSubSection] = useState('');
   const [sizeOrWeight, setSizeOrWeight] = useState('');
 
   // Loading and helper state
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter states for the list view
   const [listCategory, setListCategory] = useState<string>('all');
@@ -63,7 +62,6 @@ export default function DishCrud() {
     setActive(true);
     setIsCustomizable(false);
     setCustomizationOptions([]);
-    setSubSection('');
     setSizeOrWeight('');
     setIsOpen(true);
   };
@@ -79,7 +77,6 @@ export default function DishCrud() {
     setActive(dish.active);
     setIsCustomizable(dish.isCustomizable || false);
     setCustomizationOptions(dish.customizationOptions || []);
-    setSubSection(dish.subSection || '');
     setSizeOrWeight(dish.sizeOrWeight || '');
     setIsOpen(true);
   };
@@ -209,16 +206,11 @@ export default function DishCrud() {
       sortOrder,
       isCustomizable,
       customizationOptions: isCustomizable ? sanitizedCustomizations : [],
-      subSection: subSection.trim() || undefined,
+      subSection: editingDish?.subSection, // preserva sub-seção se houver dados legados
       sizeOrWeight: sizeOrWeight.trim() || undefined
     });
 
     setIsOpen(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    await removeDish(id);
-    setConfirmDeleteId(null);
   };
 
   // Filter dishes shown in list view
@@ -337,8 +329,8 @@ export default function DishCrud() {
                         onClick={() => handleToggleActive(dish)}
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold cursor-pointer transition-colors ${
                           dish.active
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                            : 'bg-stone-100 text-stone-400 border border-stone-200'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-stone-100 text-stone-400'
                         }`}
                         title={dish.active ? 'Desativar item' : 'Ativar item'}
                       >
@@ -408,42 +400,27 @@ export default function DishCrud() {
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               
-              {/* Category selector & Sub-section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
-                    Categoria do Prato
-                  </label>
-                  <select
-                    required
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 bg-white"
-                  >
-                    {categories.length === 0 ? (
-                      <option value="" disabled>Cadastre uma categoria primeiro!</option>
-                    ) : (
-                      categories.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                <div className="flex flex-col">
-                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
-                    Sub-seção / Agrupamento (Opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={subSection}
-                    onChange={(e) => setSubSection(e.target.value)}
-                    placeholder="Ex: Sucos de Polpa, Massas Rústicas"
-                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800"
-                  />
-                </div>
+              {/* Category selector only (Subsection removed) */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
+                  Categoria do Prato
+                </label>
+                <select
+                  required
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 bg-white"
+                >
+                  {categories.length === 0 ? (
+                    <option value="" disabled>Cadastre uma categoria primeiro!</option>
+                  ) : (
+                    categories.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
 
               {/* Name, Price & Weight Grid */}
@@ -529,7 +506,7 @@ export default function DishCrud() {
               {isCustomizable && (
                 <div className="space-y-4 p-3 md:p-4 bg-stone-50 rounded-xl md:rounded-2xl border border-stone-200">
                   <div className="flex justify-between items-center border-b border-stone-200 pb-2 gap-2">
-                    <span className="text-[11px] font-bold text-stone-850 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-stone-855 uppercase tracking-wider">
                       Estrutura de Opcionais
                     </span>
                     <button
@@ -565,7 +542,7 @@ export default function DishCrud() {
                           {/* Group Title and Rules */}
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="sm:col-span-2 flex flex-col">
-                              <label className="text-[9px] font-bold text-stone-550 uppercase">Título do Grupo (No cardápio: Limite grátis = Máximo)</label>
+                              <label className="text-[9px] font-bold text-stone-550 uppercase">Título do Grupo</label>
                               <input
                                 type="text"
                                 required
