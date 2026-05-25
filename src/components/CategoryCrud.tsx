@@ -216,7 +216,7 @@ export default function CategoryCrud() {
                 onClick={() => handleDelete(confirmDeleteId)}
                 className="py-2.5 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer"
               >
-                Excluir Tudo
+                Excluir
               </button>
             </div>
           </div>

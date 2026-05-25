@@ -95,7 +95,7 @@ export default function DishCrud() {
       setImageUrl(url);
     } catch (err) {
       console.error('Failed to upload image', err);
-      alert('Erro ao fazer upload da imagem. Usando local mock/fallback.');
+      alert('Erro ao fazer upload da imagem.');
     } finally {
       setIsUploading(false);
     }
@@ -245,7 +245,7 @@ export default function DishCrud() {
 
         <button
           onClick={handleOpenAdd}
-          className="py-2.5 px-4 rounded-xl bg-brand-red text-white hover:bg-brand-darkred font-bold text-xs tracking-wider uppercase shadow-md shadow-brand-red/10 flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+          className="py-2.5 px-4 rounded-xl bg-brand-red text-white hover:bg-brand-darkred font-bold text-xs tracking-wider uppercase shadow-md shadow-brand-red/10 flex items-center gap-1.5 cursor-pointer self-start sm:self-auto transition-all"
         >
           <Plus size={16} />
           <span>Novo Prato</span>
@@ -294,7 +294,6 @@ export default function DishCrud() {
                 <th className="p-4">Nome do Prato</th>
                 <th className="p-4">Categoria</th>
                 <th className="p-4 text-right">Preço</th>
-                <th className="p-4 text-center">Tipo</th>
                 <th className="p-4 text-center">Status</th>
                 <th className="p-4 text-right">Ações</th>
               </tr>
@@ -314,8 +313,15 @@ export default function DishCrud() {
                       </div>
                     </td>
                     <td className="p-4 font-semibold text-stone-900">
-                      <div>{dish.name}</div>
-                      <div className="text-[10px] text-stone-400 font-medium line-clamp-1 max-w-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span>{dish.name}</span>
+                        {dish.isCustomizable && (
+                          <span className="text-[9px] font-bold bg-brand-red/10 text-brand-red px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            Personalizável
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-stone-400 font-medium line-clamp-1 max-w-xs mt-0.5">
                         {dish.description}
                       </div>
                     </td>
@@ -326,16 +332,6 @@ export default function DishCrud() {
                     </td>
                     <td className="p-4 text-right font-bold text-stone-900">
                       {formatPrice(dish.price)}
-                    </td>
-                    <td className="p-4 text-center">
-                      {dish.isCustomizable ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-brand-red/10 text-brand-red px-2 py-0.5 rounded-full border border-brand-red/20 uppercase tracking-wide">
-                          <Sliders size={10} />
-                          Personalizável
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-stone-400">Padrão</span>
-                      )}
                     </td>
                     <td className="p-4 text-center">
                       <button
@@ -364,14 +360,14 @@ export default function DishCrud() {
                       <div className="flex gap-1 justify-end">
                         <button
                           onClick={() => handleOpenEdit(dish)}
-                          className="p-2 rounded-lg text-stone-500 hover:text-stone-850 hover:bg-stone-100 cursor-pointer"
+                          className="p-2 rounded-lg text-stone-500 hover:text-stone-850 hover:bg-stone-100 cursor-pointer transition-colors"
                           title="Editar prato"
                         >
                           <Edit size={14} />
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(dish.id)}
-                          className="p-2 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer"
+                          className="p-2 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
                           title="Excluir prato"
                         >
                           <Trash2 size={14} />
@@ -401,7 +397,7 @@ export default function DishCrud() {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded-full hover:bg-stone-200 text-stone-500 cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-stone-200 text-stone-500 cursor-pointer transition-colors"
               >
                 <X size={18} />
               </button>
@@ -528,7 +524,7 @@ export default function DishCrud() {
               {/* Customization Options Constructor */}
               {isCustomizable && (
                 <div className="space-y-4 p-4 bg-stone-50 rounded-2xl border border-stone-200">
-                  <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+                  <div className="flex justify-between items-center border-b border-stone-200/80 pb-2">
                     <span className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
                       <Sparkles size={14} className="text-brand-red" />
                       Estrutura de Opcionais / Acompanhamentos
@@ -536,7 +532,7 @@ export default function DishCrud() {
                     <button
                       type="button"
                       onClick={handleAddGroup}
-                      className="py-1 px-2.5 bg-brand-red/10 hover:bg-brand-red/20 text-brand-red rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                      className="py-1 px-3 bg-brand-red text-white hover:bg-brand-darkred rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <Plus size={12} />
                       Adicionar Grupo
@@ -554,13 +550,13 @@ export default function DishCrud() {
                           <button
                             type="button"
                             onClick={() => handleRemoveGroup(group.id)}
-                            className="absolute top-3 right-3 p-1 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer"
+                            className="absolute top-3 right-3 p-1 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
                           >
                             <X size={14} />
                           </button>
 
                           {/* Group Title and Rules */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                             <div className="md:col-span-2">
                               <label className="text-[9px] font-bold text-stone-500 uppercase">Título do Grupo</label>
                               <input
@@ -569,7 +565,7 @@ export default function DishCrud() {
                                 value={group.title}
                                 onChange={(e) => handleGroupTitleChange(group.id, e.target.value)}
                                 placeholder="Ex: Escolha até 3 acompanhamentos"
-                                className="w-full px-3 py-1.5 mt-0.5 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
+                                className="w-full px-3 py-2 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -581,7 +577,7 @@ export default function DishCrud() {
                                   required
                                   value={group.min}
                                   onChange={(e) => handleGroupRuleChange(group.id, 'min', Number(e.target.value))}
-                                  className="w-full px-3 py-1.5 mt-0.5 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-805 font-mono"
+                                  className="w-full px-3 py-2 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-mono font-bold"
                                 />
                               </div>
                               <div>
@@ -592,7 +588,7 @@ export default function DishCrud() {
                                   required
                                   value={group.max}
                                   onChange={(e) => handleGroupRuleChange(group.id, 'max', Number(e.target.value))}
-                                  className="w-full px-3 py-1.5 mt-0.5 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-805 font-mono"
+                                  className="w-full px-3 py-2 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-mono font-bold"
                                 />
                               </div>
                             </div>
@@ -615,7 +611,7 @@ export default function DishCrud() {
                             {group.items.length === 0 ? (
                               <p className="text-[11px] text-stone-400 italic py-1 pl-1">Cadastre pelo menos uma opção para este grupo.</p>
                             ) : (
-                              <div className="space-y-1.5">
+                              <div className="space-y-2">
                                 {group.items.map((item, itemIdx) => (
                                   <div key={itemIdx} className="flex items-center gap-2">
                                     <input
@@ -624,7 +620,7 @@ export default function DishCrud() {
                                       value={item.name}
                                       onChange={(e) => handleItemPropertyChange(group.id, itemIdx, 'name', e.target.value)}
                                       placeholder="Ex: Purê de Batata"
-                                      className="flex-1 px-3 py-1 rounded-lg border border-stone-200 text-xs text-stone-750 outline-none focus:border-brand-red"
+                                      className="flex-1 px-3 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-750 outline-none focus:border-brand-red font-semibold"
                                     />
                                     
                                     <div className="w-28 relative">
@@ -633,17 +629,17 @@ export default function DishCrud() {
                                       </span>
                                       <input
                                         type="text"
-                                        placeholder="Opcional"
+                                        placeholder="Preço"
                                         value={item.price !== undefined ? item.price : ''}
                                         onChange={(e) => handleItemPropertyChange(group.id, itemIdx, 'price', e.target.value)}
-                                        className="w-full pl-10 pr-2 py-1 rounded-lg border border-stone-200 text-xs text-stone-805 font-bold outline-none focus:border-brand-red"
+                                        className="w-full pl-10 pr-2 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-800 font-bold outline-none focus:border-brand-red"
                                       />
                                     </div>
 
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveItemFromGroup(group.id, itemIdx)}
-                                      className="p-1 rounded text-stone-450 hover:text-red-650 hover:bg-red-50 cursor-pointer"
+                                      className="p-1.5 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
                                     >
                                       <X size={14} />
                                     </button>
@@ -665,7 +661,7 @@ export default function DishCrud() {
                 <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                   Foto do Prato
                 </label>
-                <div className="flex gap-4 items-center">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                   <div className="h-20 w-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center relative shrink-0">
                     {isUploading ? (
                       <Loader2 className="animate-spin text-brand-red" size={24} />
@@ -676,7 +672,7 @@ export default function DishCrud() {
                     )}
                   </div>
 
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 w-full space-y-2.5">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -688,10 +684,10 @@ export default function DishCrud() {
                       type="button"
                       disabled={isUploading}
                       onClick={() => fileInputRef.current?.click()}
-                      className="py-2.5 px-4 rounded-xl border border-stone-250 hover:bg-stone-50 text-stone-600 font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto py-2 px-4 rounded-xl border border-stone-250 hover:bg-stone-50 text-stone-600 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors"
                     >
                       <Upload size={14} />
-                      {isUploading ? 'Enviando...' : 'Carregar Imagem'}
+                      {isUploading ? 'Otimizando Imagem...' : 'Carregar Imagem'}
                     </button>
                     
                     <input
@@ -699,7 +695,7 @@ export default function DishCrud() {
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       placeholder="Ou cole uma URL direta da imagem"
-                      className="w-full px-3 py-1.5 rounded-lg border border-stone-200 outline-none text-xs text-stone-600"
+                      className="w-full px-3 py-2 rounded-lg border border-stone-200 outline-none text-xs text-stone-600"
                     />
                   </div>
                 </div>
@@ -716,7 +712,7 @@ export default function DishCrud() {
                     required
                     value={sortOrder}
                     onChange={(e) => setSortOrder(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-855 font-mono"
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-800 font-mono font-bold"
                   />
                 </div>
                 
@@ -742,14 +738,14 @@ export default function DishCrud() {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="py-2.5 px-4 rounded-xl text-stone-600 hover:bg-stone-100 font-semibold text-xs tracking-wider uppercase cursor-pointer"
+                className="py-2.5 px-4 rounded-xl text-stone-600 hover:bg-stone-100 font-semibold text-xs tracking-wider uppercase cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isUploading}
-                className="py-2.5 px-5 rounded-xl bg-brand-red hover:bg-brand-darkred text-white font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 shadow-md shadow-brand-red/10 cursor-pointer disabled:opacity-50"
+                className="py-2.5 px-5 rounded-xl bg-brand-red hover:bg-brand-darkred text-white font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 shadow-md shadow-brand-red/10 cursor-pointer disabled:opacity-50 transition-colors"
               >
                 <Save size={14} />
                 <span>Salvar Prato</span>
@@ -775,13 +771,13 @@ export default function DishCrud() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="py-2.5 px-4 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 font-semibold text-xs tracking-wider uppercase cursor-pointer"
+                className="py-2.5 px-4 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 font-semibold text-xs tracking-wider uppercase cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDelete(confirmDeleteId)}
-                className="py-2.5 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer"
+                className="py-2.5 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer transition-colors"
               >
                 Excluir
               </button>
