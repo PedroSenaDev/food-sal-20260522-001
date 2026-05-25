@@ -23,20 +23,23 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
       {/* Info Drawer */}
       <div className="relative w-full max-w-xs h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-350 ease-out">
         
-        {/* Header */}
-        <div className="p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50">
-          <div className="flex flex-col">
-            <span className="font-serif text-xl font-bold tracking-tight text-brand-darkred">
-              Food<span className="text-brand-red font-semibold italic">Sal</span>
+        {/* Header - Styled to match the Main Hero Section */}
+        <div className="p-5 flex items-center justify-between bg-brand-darkred text-[#F5E6D3] shadow-md relative overflow-hidden">
+          {/* Subtle pattern just like the hero section */}
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#F5E6D3_1.5px,transparent_1.5px)] [background-size:12px_12px]" />
+          
+          <div className="flex flex-col relative z-10 select-none">
+            <span className="font-serif text-2xl font-extrabold tracking-tight text-[#F5E6D3]">
+              Food<span className="text-brand-red font-serif font-semibold italic [text-shadow:-0.5px_-0.5px_0_#F5E6D3,0.5px_-0.5px_0_#F5E6D3,-0.5px_0.5px_0_#F5E6D3,0.5px_0.5px_0_#F5E6D3]">Sal</span>
             </span>
-            <span className="text-[9px] uppercase tracking-widest text-stone-400 font-bold -mt-0.5">
+            <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#F5E6D3]/80 mt-1">
               Sobre nós
             </span>
           </div>
           
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-stone-200 text-stone-500 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-white/10 text-[#F5E6D3] transition-colors cursor-pointer relative z-10"
           >
             <X size={18} />
           </button>

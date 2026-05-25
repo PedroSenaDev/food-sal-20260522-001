@@ -19,14 +19,14 @@ export default function Navbar() {
         */}
         <div className="max-w-6xl mx-auto px-4 h-24 md:h-28 flex items-center justify-between relative">
           
-          {/* Menu Trigger Button on the Left */}
+          {/* Menu Trigger Button on the Left - Plain red icon, no borders or background */}
           <div className="flex items-center justify-start w-24 shrink-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2.5 rounded-xl border border-stone-200/80 hover:border-brand-red/25 bg-white text-stone-600 hover:text-brand-red hover:bg-brand-red/5 transition-all cursor-pointer flex items-center justify-center shadow-sm"
+              className="p-2 text-brand-red hover:text-brand-darkred transition-all cursor-pointer flex items-center justify-center"
               title="Informações do restaurante"
             >
-              <MenuIcon size={18} />
+              <MenuIcon size={24} />
             </button>
           </div>
 
