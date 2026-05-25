@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import Navbar from '../components/Navbar';
 import CategoryNav from '../components/CategoryNav';
 import MenuCard from '../components/MenuCard';
-import { Search, Loader2, MapPin, Sparkles } from 'lucide-react';
+import TrayModal from '../components/TrayModal';
+import { Search, Loader2, MapPin, Sparkles, ShoppingBag } from 'lucide-react';
 
 // Helper function to remove emojis from string
 const stripEmojis = (str: string) => {
@@ -20,8 +21,12 @@ export default function Home() {
     searchQuery, 
     setSearchQuery, 
     isLoading,
-    settings
+    settings,
+    cartCount,
+    cartTotal
   } = useApp();
+
+  const [isTrayOpen, setIsTrayOpen] = useState(false);
 
   // Filter logic: unifies display of all categories 1 to 6
   const filteredDishes = dishes.filter(dish => {
@@ -104,7 +109,7 @@ export default function Home() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar pratos ou ingredientes..."
-            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-stone-250/70 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-805 bg-white/95 shadow-sm"
+            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-stone-250/70 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-855 bg-white/95 shadow-sm"
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
           {searchQuery && (
@@ -256,6 +261,32 @@ export default function Home() {
         )}
 
       </main>
+
+      {/* Floating Order Cart Button (Shown when items are in cart) */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-6 inset-x-4 max-w-md mx-auto z-40 animate-in slide-in-from-bottom-6 duration-300">
+          <button
+            onClick={() => setIsTrayOpen(true)}
+            className="w-full py-4 px-6 bg-brand-red hover:bg-brand-darkred active:scale-98 text-white font-bold text-sm tracking-wide rounded-2xl shadow-xl shadow-brand-red/20 flex items-center justify-between transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <ShoppingBag size={20} />
+                <span className="absolute -top-2 -right-2 bg-white text-brand-red h-5 w-5 rounded-full text-[10px] font-extrabold flex items-center justify-center shadow">
+                  {cartCount}
+                </span>
+              </div>
+              <span>Ver meu pedido</span>
+            </div>
+            <span className="font-extrabold">
+              {settings.currencySymbol} {cartTotal.toFixed(2)}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Cart Tray Modal */}
+      <TrayModal isOpen={isTrayOpen} onClose={() => setIsTrayOpen(false)} />
     </div>
   );
 }
