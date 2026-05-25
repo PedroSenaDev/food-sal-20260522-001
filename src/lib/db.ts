@@ -85,12 +85,14 @@ export async function getCategories(): Promise<Category[]> {
         .order('sort_order', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        section: item.section,
-        sortOrder: item.sort_order
-      }));
+      if (data && data.length > 0) {
+        return data.map(item => ({
+          id: item.id,
+          name: item.name,
+          section: item.section,
+          sortOrder: item.sort_order
+        }));
+      }
     } catch (e) {
       console.warn('Failed to fetch categories from Supabase, falling back to local storage', e);
     }
@@ -144,26 +146,25 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
           fullCategory.id = data[0].id;
         }
       }
-      return fullCategory;
     } catch (e) {
-      console.error('Supabase saveCategory failed', e);
+      console.error('Supabase saveCategory failed, saving to local storage fallback', e);
     }
   }
 
-  // Fallback
-  if (!isBrowser) return fullCategory;
+  // Always save to fallback to guarantee sync and absolute database persistence
+  if (isBrowser) {
+    initializeLocalStorage();
+    const categories = await getCategories();
+    const index = categories.findIndex(c => c.id === category.id);
 
-  initializeLocalStorage();
-  const categories = await getCategories();
-  const index = categories.findIndex(c => c.id === category.id);
-
-  if (index >= 0) {
-    categories[index] = fullCategory;
-  } else {
-    categories.push(fullCategory);
+    if (index >= 0) {
+      categories[index] = fullCategory;
+    } else {
+      categories.push(fullCategory);
+    }
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
   }
 
-  localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
   return fullCategory;
 }
 
@@ -175,7 +176,6 @@ export async function deleteCategory(id: string): Promise<boolean> {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      return true;
     } catch (e) {
       console.error('Supabase deleteCategory failed', e);
     }
@@ -210,23 +210,25 @@ export async function getDishes(): Promise<Dish[]> {
         .order('sort_order', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(item => ({
-        id: item.id,
-        categoryId: item.category_id,
-        name: item.name,
-        description: item.description,
-        price: Number(item.price),
-        image: item.image_url || '',
-        active: item.active,
-        section: item.section,
-        sortOrder: item.sort_order,
-        isCustomizable: item.is_customizable,
-        customizationOptions: typeof item.customization_options === 'string' 
-          ? JSON.parse(item.customization_options) 
-          : item.customization_options || [],
-        subSection: item.sub_section,
-        sizeOrWeight: item.size_or_weight
-      }));
+      if (data && data.length > 0) {
+        return data.map(item => ({
+          id: item.id,
+          categoryId: item.category_id,
+          name: item.name,
+          description: item.description,
+          price: Number(item.price),
+          image: item.image_url || '',
+          active: item.active,
+          section: item.section,
+          sortOrder: item.sort_order,
+          isCustomizable: item.is_customizable,
+          customizationOptions: typeof item.customization_options === 'string' 
+            ? JSON.parse(item.customization_options) 
+            : item.customization_options || [],
+          subSection: item.sub_section,
+          sizeOrWeight: item.size_or_weight
+        }));
+      }
     } catch (e) {
       console.warn('Failed to fetch dishes from Supabase, falling back to local storage', e);
     }
@@ -307,26 +309,26 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
           fullDish.id = data[0].id;
         }
       }
-      return fullDish;
     } catch (e) {
-      console.error('Supabase saveDish failed', e);
+      console.error('Supabase saveDish failed, saving to local storage fallback', e);
     }
   }
 
-  // Fallback
-  if (!isBrowser) return fullDish;
+  // Always save locally to ensure robustness of data persistence
+  if (isBrowser) {
+    initializeLocalStorage();
+    const dishes = await getDishes();
+    const index = dishes.findIndex(d => d.id === dish.id);
 
-  initializeLocalStorage();
-  const dishes = await getDishes();
-  const index = dishes.findIndex(d => d.id === dish.id);
+    if (index >= 0) {
+      dishes[index] = fullDish;
+    } else {
+      dishes.push(fullDish);
+    }
 
-  if (index >= 0) {
-    dishes[index] = fullDish;
-  } else {
-    dishes.push(fullDish);
+    localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(dishes));
   }
 
-  localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(dishes));
   return fullDish;
 }
 
@@ -338,7 +340,6 @@ export async function deleteDish(id: string): Promise<boolean> {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      return true;
     } catch (e) {
       console.error('Supabase deleteDish failed', e);
     }
@@ -366,7 +367,7 @@ export async function getOrders(): Promise<Order[]> {
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         return data.map(item => ({
           id: item.id,
           tableNumber: item.table_number,
@@ -409,19 +410,19 @@ export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise
           total: order.total,
           created_at: createdAt
         }]);
-      
-      if (!error) return fullOrder;
+      if (error) throw error;
     } catch (e) {
       console.error('Supabase saveOrder failed', e);
     }
   }
 
-  if (!isBrowser) return fullOrder;
+  if (isBrowser) {
+    initializeLocalStorage();
+    const orders = await getOrders();
+    orders.unshift(fullOrder);
+    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  }
 
-  initializeLocalStorage();
-  const orders = await getOrders();
-  orders.unshift(fullOrder); // Prepend so newest is first
-  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
   return fullOrder;
 }
 
@@ -471,17 +472,17 @@ export async function saveSettings(settings: SystemSettings): Promise<SystemSett
         if (error) throw error;
       });
       await Promise.all(promises);
-      return settings;
     } catch (e) {
       console.error('Supabase saveSettings failed', e);
     }
   }
 
   // Fallback
-  if (!isBrowser) return settings;
+  if (isBrowser) {
+    initializeLocalStorage();
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  }
 
-  initializeLocalStorage();
-  localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   return settings;
 }
 
@@ -490,7 +491,6 @@ export async function saveSettings(settings: SystemSettings): Promise<SystemSett
 // ==========================================
 
 export async function uploadImage(file: File): Promise<string> {
-  // Compress image client-side to prevent memory lagging, database bloat and Supabase overflow
   const compressImage = (imageFile: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
