@@ -3,17 +3,15 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import AdminLayout from '../../components/AdminLayout';
-import DashboardStats from '../../components/DashboardStats';
 import CategoryCrud from '../../components/CategoryCrud';
 import DishCrud from '../../components/DishCrud';
-import QRGenerator from '../../components/QRGenerator';
 import AdminSettings from '../../components/AdminSettings';
 import { Lock, ArrowRight, ShieldAlert, Key } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminPage() {
   const { isAdminLoggedIn, loginAdmin, settings } = useApp();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('categories');
   
   // Login states
   const [password, setPassword] = useState('');
@@ -32,18 +30,14 @@ export default function AdminPage() {
   // Render active tab panel
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
-        return <DashboardStats />;
       case 'categories':
         return <CategoryCrud />;
       case 'dishes':
         return <DishCrud />;
-      case 'qrcodes':
-        return <QRGenerator />;
       case 'settings':
         return <AdminSettings />;
       default:
-        return <DashboardStats />;
+        return <CategoryCrud />;
     }
   };
 

@@ -3,10 +3,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
-  LayoutDashboard, 
   FolderTree, 
   Utensils, 
-  QrCode, 
   Settings, 
   LogOut, 
   Menu, 
@@ -26,10 +24,8 @@ export default function AdminLayout({ activeTab, setActiveTab, children }: Admin
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'categories', label: 'Categorias', icon: FolderTree },
     { id: 'dishes', label: 'Pratos', icon: Utensils },
-    { id: 'qrcodes', label: 'QR Codes', icon: QrCode },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
