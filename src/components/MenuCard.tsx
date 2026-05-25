@@ -47,7 +47,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     }
   }, [isDetailOpen, dish]);
 
-  // Recalculate price dynamically with logic: Up to 'max' options are free, additional ones are paid
+  // Recalculate price dynamically
   useEffect(() => {
     if (!dish.isCustomizable || !dish.customizationOptions) return;
 
@@ -55,6 +55,9 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     Object.entries(selections).forEach(([groupId, items]) => {
       const group = dish.customizationOptions?.find(g => g.id === groupId);
       if (group) {
+        // Check if group has any free options (price is 0 or undefined)
+        const hasFreeOptions = group.items.some(it => !it.price || it.price === 0);
+
         // Collect matches with their pricing
         const itemsWithPrices = items.map(itemName => {
           const matchedItem = group.items.find(i => i.name === itemName);
@@ -64,15 +67,21 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
           };
         });
 
-        // Sort ascending so cheapest items are discounted (first 'group.max' items are free)
-        itemsWithPrices.sort((a, b) => a.price - b.price);
-
-        // If selections count exceeds 'max' limit, we charge for the extras
-        if (itemsWithPrices.length > group.max) {
-          const paidItems = itemsWithPrices.slice(group.max);
-          paidItems.forEach(item => {
+        if (hasFreeOptions) {
+          // Case A: Group contains standard free items.
+          // Items with price > 0 are always paid as extra options, and do not consume free slots.
+          itemsWithPrices.forEach(item => {
             extraPrice += item.price;
           });
+        } else {
+          // Case B: Group contains only paid items (e.g., premium list). First 'group.max' cheapest are free.
+          itemsWithPrices.sort((a, b) => a.price - b.price);
+          if (itemsWithPrices.length > group.max) {
+            const paidItems = itemsWithPrices.slice(group.max);
+            paidItems.forEach(item => {
+              extraPrice += item.price;
+            });
+          }
         }
       }
     });
@@ -97,8 +106,6 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
           [group.id]: currentGroupSelections.filter(n => n !== itemName)
         }));
       } else {
-        // No hard limits now! Clients can select as many as they want
-        // But we still offer dynamic feedback on price
         setSelections(prev => ({
           ...prev,
           [group.id]: [...currentGroupSelections, itemName]
@@ -126,22 +133,31 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       dish.customizationOptions.forEach(group => {
         const chosenNames = selections[group.id] || [];
         if (chosenNames.length > 0) {
+          const hasFreeOptions = group.items.some(it => !it.price || it.price === 0);
+
           const itemsWithPrices = chosenNames.map(name => {
             const match = group.items.find(i => i.name === name);
             return { name, price: match?.price || 0 };
           });
 
-          // Sort ascending so the cheapest selections within 'group.max' count remain free
-          itemsWithPrices.sort((a, b) => a.price - b.price);
-
-          const itemsWithAdjustedPrices = itemsWithPrices.map((item, idx) => {
-            // idx < group.max means it is within the free limit
-            const isFree = idx < group.max;
-            return {
+          let itemsWithAdjustedPrices;
+          if (hasFreeOptions) {
+            // Case A: Always keep their original price if > 0
+            itemsWithAdjustedPrices = itemsWithPrices.map(item => ({
               name: item.name,
-              price: isFree ? undefined : (item.price > 0 ? item.price : undefined)
-            };
-          });
+              price: item.price > 0 ? item.price : undefined
+            }));
+          } else {
+            // Case B: Sort ascending so the cheapest selections within 'group.max' count remain free
+            itemsWithPrices.sort((a, b) => a.price - b.price);
+            itemsWithAdjustedPrices = itemsWithPrices.map((item, idx) => {
+              const isFree = idx < group.max;
+              return {
+                name: item.name,
+                price: isFree ? undefined : (item.price > 0 ? item.price : undefined)
+              };
+            });
+          }
 
           finalizedCustoms.push({
             groupTitle: group.title,
@@ -286,7 +302,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                         {/* Option group header */}
                         <div className="flex justify-between items-center">
                           <div>
-                            <span className="text-xs font-bold text-stone-850 block">{group.title}</span>
+                            <span className="text-xs font-bold text-stone-855 block">{group.title}</span>
                             <span className="text-[10px] text-stone-550 font-semibold block mt-0.5 leading-tight">
                               {isRadio 
                                 ? `Selecione 1 opção` 
