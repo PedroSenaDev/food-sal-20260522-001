@@ -40,6 +40,9 @@ export interface SystemSettings {
   welcomeMessage: string;
   address: string;
   currencySymbol: string;
+  welcomeText: string;     // Nova: Texto de Boas-vindas da sidebar
+  businessHours: string;   // Nova: Horário de atendimento
+  instagramUrl: string;    // Nova: Link do Instagram
 }
 
 export const INITIAL_CATEGORIES: Category[] = [
@@ -177,7 +180,7 @@ export const INITIAL_DISHES: Dish[] = [
     name: 'Espaguete à Mineira',
     description: 'Espaguete com couve refogada na manteiga de alho, pedacinhos de linguiça da roça e queijo minas curado.',
     price: 34.00,
-    image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=600&q=80',
     active: true,
     section: 'adult',
     sortOrder: 2
@@ -284,7 +287,7 @@ export const INITIAL_DISHES: Dish[] = [
         items: [
           { name: 'Batata inglesa em desenhos' },
           { name: 'Cenoura em formatos divertidos' },
-          { name: 'Beterraba em fios coloridos' }
+          { name: 'Beterraba in fios coloridos' }
         ]
       }
     ]
@@ -512,5 +515,8 @@ export const INITIAL_SETTINGS: SystemSettings = {
   businessName: 'FoodSal - Gastronomia & Sabor',
   welcomeMessage: 'Olá! Gostaria de fazer o seguinte pedido do cardápio digital:',
   address: 'Av. Paulista, 1000 - São Paulo, SP',
-  currencySymbol: 'R$'
+  currencySymbol: 'R$',
+  welcomeText: 'Preparamos cada prato com ingredientes selecionados e o máximo carinho para proporcionar uma experiência gastronômica memorável direto na sua mesa.',
+  businessHours: 'Quarta a Segunda: 11h30 às 23h | Terça-feira: Fechado',
+  instagramUrl: 'https://instagram.com/foodsal'
 };
