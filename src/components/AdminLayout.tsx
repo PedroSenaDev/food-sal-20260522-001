@@ -159,11 +159,6 @@ export default function AdminLayout({ activeTab, setActiveTab, children }: Admin
           <h1 className="text-xl font-bold font-serif text-stone-900 capitalize tracking-wide">
             {menuItems.find(item => item.id === activeTab)?.label || 'Painel'}
           </h1>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-stone-500 bg-stone-100 px-3 py-1 rounded-full border border-stone-200">
-              WhatsApp: {settings.whatsappNumber}
-            </span>
-          </div>
         </header>
 
         <div className="flex-1 p-4 md:p-8 max-w-6xl w-full mx-auto">
@@ -174,3 +169,4 @@ export default function AdminLayout({ activeTab, setActiveTab, children }: Admin
     </div>
   );
 }
+</dyad-layout-or-component-file>

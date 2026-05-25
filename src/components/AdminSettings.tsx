@@ -8,7 +8,6 @@ export default function AdminSettings() {
   const { settings, updateSettings } = useApp();
 
   // Estados locais baseados estritamente na identidade do Menu Lateral Informativo
-  const [businessName, setBusinessName] = useState(settings.businessName);
   const [welcomeTitle, setWelcomeTitle] = useState(settings.welcomeTitle || '');
   const [welcomeText, setWelcomeText] = useState(settings.welcomeText || '');
   const [address, setAddress] = useState(settings.address);
@@ -23,7 +22,7 @@ export default function AdminSettings() {
     
     // Atualiza todas as configurações de forma persistente no banco de dados / localStorage
     await updateSettings({
-      businessName,
+      businessName: settings.businessName, // Mantém o nome atual sem precisar de campo no form
       welcomeTitle,
       welcomeText,
       address,
@@ -69,36 +68,19 @@ export default function AdminSettings() {
         {/* Inputs Grid */}
         <div className="space-y-5">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Nome do Estabelecimento */}
-            <div>
-              <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                Nome do Estabelecimento
-              </label>
-              <input
-                type="text"
-                required
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="Ex: FoodSal Gourmet"
-                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-800 bg-white"
-              />
-            </div>
-
-            {/* Título do Texto de Boas-vindas */}
-            <div>
-              <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                Título do Texto de Boas-vindas
-              </label>
-              <input
-                type="text"
-                required
-                value={welcomeTitle}
-                onChange={(e) => setWelcomeTitle(e.target.value)}
-                placeholder="Ex: Seja bem-vindo ao FoodSal!"
-                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-800 bg-white"
-              />
-            </div>
+          {/* Título do Texto de Boas-vindas */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+              Título do Texto de Boas-vindas
+            </label>
+            <input
+              type="text"
+              required
+              value={welcomeTitle}
+              onChange={(e) => setWelcomeTitle(e.target.value)}
+              placeholder="Ex: Seja bem-vindo ao FoodSal!"
+              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-800 bg-white font-semibold"
+            />
           </div>
 
           {/* Texto de Boas-vindas / História */}
