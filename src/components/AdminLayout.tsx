@@ -169,4 +169,3 @@ export default function AdminLayout({ activeTab, setActiveTab, children }: Admin
     </div>
   );
 }
-</dyad-layout-or-component-file>
