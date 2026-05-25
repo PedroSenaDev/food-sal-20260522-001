@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Dish, Category } from '../lib/mockData';
+import { Dish, Category, CustomizationGroup, CustomizationItem } from '../lib/mockData';
 import { uploadImage } from '../lib/db';
 import { 
   Plus, 
@@ -15,7 +15,10 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Sliders,
+  Sparkles,
+  Scale
 } from 'lucide-react';
 
 export default function DishCrud() {
@@ -33,6 +36,12 @@ export default function DishCrud() {
   const [section, setSection] = useState<'adult' | 'kids'>('adult');
   const [sortOrder, setSortOrder] = useState(0);
   const [active, setActive] = useState(true);
+  
+  // Customizable attributes
+  const [isCustomizable, setIsCustomizable] = useState(false);
+  const [customizationOptions, setCustomizationOptions] = useState<CustomizationGroup[]>([]);
+  const [subSection, setSubSection] = useState('');
+  const [sizeOrWeight, setSizeOrWeight] = useState('');
 
   // Loading and helper state
   const [isUploading, setIsUploading] = useState(false);
@@ -58,6 +67,10 @@ export default function DishCrud() {
     setSection('adult');
     setSortOrder(dishes.length + 1);
     setActive(true);
+    setIsCustomizable(false);
+    setCustomizationOptions([]);
+    setSubSection('');
+    setSizeOrWeight('');
     setIsOpen(true);
   };
 
@@ -71,6 +84,10 @@ export default function DishCrud() {
     setSection(dish.section);
     setSortOrder(dish.sortOrder);
     setActive(dish.active);
+    setIsCustomizable(dish.isCustomizable || false);
+    setCustomizationOptions(dish.customizationOptions || []);
+    setSubSection(dish.subSection || '');
+    setSizeOrWeight(dish.sizeOrWeight || '');
     setIsOpen(true);
   };
 
@@ -104,9 +121,95 @@ export default function DishCrud() {
     });
   };
 
+  // ---------------------------------------------------------------------------
+  // Customization Editor Handlers
+  // ---------------------------------------------------------------------------
+  
+  const handleAddGroup = () => {
+    const newGroup: CustomizationGroup = {
+      id: `group-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      title: '',
+      min: 0,
+      max: 1,
+      items: []
+    };
+    setCustomizationOptions(prev => [...prev, newGroup]);
+  };
+
+  const handleRemoveGroup = (groupId: string) => {
+    setCustomizationOptions(prev => prev.filter(g => g.id !== groupId));
+  };
+
+  const handleGroupTitleChange = (groupId: string, value: string) => {
+    setCustomizationOptions(prev => 
+      prev.map(g => g.id === groupId ? { ...g, title: value } : g)
+    );
+  };
+
+  const handleGroupRuleChange = (groupId: string, key: 'min' | 'max', value: number) => {
+    setCustomizationOptions(prev => 
+      prev.map(g => g.id === groupId ? { ...g, [key]: value } : g)
+    );
+  };
+
+  const handleAddItemToGroup = (groupId: string) => {
+    setCustomizationOptions(prev => 
+      prev.map(g => {
+        if (g.id === groupId) {
+          const newItems = [...g.items, { name: '', price: undefined }];
+          return { ...g, items: newItems };
+        }
+        return g;
+      })
+    );
+  };
+
+  const handleRemoveItemFromGroup = (groupId: string, itemIdx: number) => {
+    setCustomizationOptions(prev => 
+      prev.map(g => {
+        if (g.id === groupId) {
+          const newItems = g.items.filter((_, idx) => idx !== itemIdx);
+          return { ...g, items: newItems };
+        }
+        return g;
+      })
+    );
+  };
+
+  const handleItemPropertyChange = (groupId: string, itemIdx: number, key: 'name' | 'price', value: string) => {
+    setCustomizationOptions(prev => 
+      prev.map(g => {
+        if (g.id === groupId) {
+          const newItems = g.items.map((it, idx) => {
+            if (idx === itemIdx) {
+              if (key === 'price') {
+                const numericPrice = parseFloat(value);
+                return { ...it, price: isNaN(numericPrice) || numericPrice <= 0 ? undefined : numericPrice };
+              }
+              return { ...it, [key]: value };
+            }
+            return it;
+          });
+          return { ...g, items: newItems };
+        }
+        return g;
+      })
+    );
+  };
+
+  // ---------------------------------------------------------------------------
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !categoryId) return;
+
+    // Filter out invalid groups or empty options before saving
+    const sanitizedCustomizations = customizationOptions
+      .map(group => ({
+        ...group,
+        items: group.items.filter(it => it.name.trim() !== '')
+      }))
+      .filter(group => group.title.trim() !== '' && group.items.length > 0);
 
     await addOrUpdateDish({
       id: editingDish?.id,
@@ -117,7 +220,11 @@ export default function DishCrud() {
       image: imageUrl,
       active,
       section,
-      sortOrder
+      sortOrder,
+      isCustomizable,
+      customizationOptions: isCustomizable ? sanitizedCustomizations : [],
+      subSection: subSection.trim() || undefined,
+      sizeOrWeight: sizeOrWeight.trim() || undefined
     });
 
     setIsOpen(false);
@@ -235,6 +342,7 @@ export default function DishCrud() {
                 <th className="p-4">Nome do Prato</th>
                 <th className="p-4">Categoria</th>
                 <th className="p-4 text-right">Preço</th>
+                <th className="p-4 text-center">Tipo</th>
                 <th className="p-4 text-center">Status</th>
                 <th className="p-4 text-right">Ações</th>
               </tr>
@@ -266,6 +374,16 @@ export default function DishCrud() {
                     </td>
                     <td className="p-4 text-right font-bold text-stone-900">
                       {formatPrice(dish.price)}
+                    </td>
+                    <td className="p-4 text-center">
+                      {dish.isCustomizable ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-brand-red/10 text-brand-red px-2 py-0.5 rounded-full border border-brand-red/20 uppercase tracking-wide">
+                          <Sliders size={10} />
+                          Personalizável
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-stone-400">Padrão</span>
+                      )}
                     </td>
                     <td className="p-4 text-center">
                       <button
@@ -321,7 +439,7 @@ export default function DishCrud() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <form 
             onSubmit={handleSave}
-            className="w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+            className="w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
           >
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-stone-100 flex justify-between items-center bg-stone-50 shrink-0">
@@ -338,7 +456,7 @@ export default function DishCrud() {
             </div>
 
             {/* Modal Fields - Scrollable */}
-            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
               
               {/* Menu Section */}
               <div>
@@ -371,32 +489,47 @@ export default function DishCrud() {
                 </div>
               </div>
 
-              {/* Category selector */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                  Categoria
-                </label>
-                <select
-                  required
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 bg-white"
-                >
-                  {filteredCategoriesForForm.length === 0 ? (
-                    <option value="" disabled>Cadastre uma categoria nesta seção primeiro!</option>
-                  ) : (
-                    filteredCategoriesForForm.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))
-                  )}
-                </select>
+              {/* Category selector & Sub-section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    Categoria
+                  </label>
+                  <select
+                    required
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 bg-white"
+                  >
+                    {filteredCategoriesForForm.length === 0 ? (
+                      <option value="" disabled>Cadastre uma categoria nesta seção primeiro!</option>
+                    ) : (
+                      filteredCategoriesForForm.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    Sub-seção / Agrupamento (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={subSection}
+                    onChange={(e) => setSubSection(e.target.value)}
+                    placeholder="Ex: Sucos de Polpa, Massas Rústicas"
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850"
+                  />
+                </div>
               </div>
 
-              {/* Name & Price */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2">
+              {/* Name, Price & Weight */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                     Nome do Prato
                   </label>
@@ -411,7 +544,7 @@ export default function DishCrud() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                    Preço (R$)
+                    Preço Base (R$)
                   </label>
                   <input
                     type="text"
@@ -420,6 +553,18 @@ export default function DishCrud() {
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="0.00"
                     className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    Tamanho / Peso (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={sizeOrWeight}
+                    onChange={(e) => setSizeOrWeight(e.target.value)}
+                    placeholder="Ex: 350ml, 180g"
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850"
                   />
                 </div>
               </div>
@@ -433,10 +578,166 @@ export default function DishCrud() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ex: Filé empanado, coberto com molho de tomate rústico e muçarela gratinada."
-                  rows={3}
+                  rows={2}
                   className="w-full p-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 resize-none placeholder-stone-400 bg-white"
                 />
               </div>
+
+              {/* Toggle Customizations Mode */}
+              <div className="p-4 bg-brand-red/5 rounded-2xl border border-brand-red/10 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Sliders className="text-brand-red" size={20} />
+                  <div>
+                    <span className="text-xs font-bold text-stone-900 block uppercase">Prato Personalizável (Monte seu Pedido)</span>
+                    <span className="text-[10px] text-stone-500 block">Permitir que o cliente escolha guarnições, pontos da carne, etc.</span>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isCustomizable}
+                    onChange={(e) => setIsCustomizable(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-red"></div>
+                </label>
+              </div>
+
+              {/* Customization Options Constructor */}
+              {isCustomizable && (
+                <div className="space-y-4 p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                  <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+                    <span className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-brand-red" />
+                      Estrutura de Opcionais / Acompanhamentos
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleAddGroup}
+                      className="py-1 px-2.5 bg-brand-red/10 hover:bg-brand-red/20 text-brand-red rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus size={12} />
+                      Adicionar Grupo
+                    </button>
+                  </div>
+
+                  {customizationOptions.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-4 italic">Nenhum grupo de opcionais criado ainda. Clique acima para adicionar.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {customizationOptions.map((group, groupIdx) => (
+                        <div key={group.id} className="p-4 bg-white rounded-xl border border-stone-200 shadow-sm relative space-y-3">
+                          
+                          {/* Remove Group Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGroup(group.id)}
+                            className="absolute top-3 right-3 p-1 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer"
+                          >
+                            <X size={14} />
+                          </button>
+
+                          {/* Group Title and Rules */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="md:col-span-2">
+                              <label className="text-[9px] font-bold text-stone-500 uppercase">Título do Grupo</label>
+                              <input
+                                type="text"
+                                required
+                                value={group.title}
+                                onChange={(e) => handleGroupTitleChange(group.id, e.target.value)}
+                                placeholder="Ex: Escolha até 3 acompanhamentos"
+                                className="w-full px-3 py-1.5 mt-0.5 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[9px] font-bold text-stone-500 uppercase">Min. escolhas</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  required
+                                  value={group.min}
+                                  onChange={(e) => handleGroupRuleChange(group.id, 'min', Number(e.target.value))}
+                                  className="w-full px-3 py-1.5 mt-0.5 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-805 font-mono"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-stone-500 uppercase">Máx. escolhas</label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  required
+                                  value={group.max}
+                                  onChange={(e) => handleGroupRuleChange(group.id, 'max', Number(e.target.value))}
+                                  className="w-full px-3 py-1.5 mt-0.5 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-805 font-mono"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Items Lists */}
+                          <div className="space-y-2 pt-2 border-t border-stone-100">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-[9px] font-bold text-stone-500 uppercase">Opções do Grupo</span>
+                              <button
+                                type="button"
+                                onClick={() => handleAddItemToGroup(group.id)}
+                                className="text-[10px] font-bold text-brand-red hover:underline flex items-center gap-0.5 cursor-pointer"
+                              >
+                                <Plus size={10} />
+                                Adicionar Opção
+                              </button>
+                            </div>
+
+                            {group.items.length === 0 ? (
+                              <p className="text-[11px] text-stone-400 italic py-1 pl-1">Cadastre pelo menos uma opção para este grupo.</p>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {group.items.map((item, itemIdx) => (
+                                  <div key={itemIdx} className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      required
+                                      value={item.name}
+                                      onChange={(e) => handleItemPropertyChange(group.id, itemIdx, 'name', e.target.value)}
+                                      placeholder="Ex: Purê de Batata"
+                                      className="flex-1 px-3 py-1 rounded-lg border border-stone-200 text-xs text-stone-750 outline-none focus:border-brand-red"
+                                    />
+                                    
+                                    <div className="w-28 relative">
+                                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-stone-400 font-mono">
+                                        + R$
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="Opcional"
+                                        value={item.price !== undefined ? item.price : ''}
+                                        onChange={(e) => handleItemPropertyChange(group.id, itemIdx, 'price', e.target.value)}
+                                        className="w-full pl-10 pr-2 py-1 rounded-lg border border-stone-200 text-xs text-stone-805 font-bold outline-none focus:border-brand-red"
+                                      />
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveItemFromGroup(group.id, itemIdx)}
+                                      className="p-1 rounded text-stone-450 hover:text-red-650 hover:bg-red-50 cursor-pointer"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Image Upload */}
               <div>
@@ -487,7 +788,7 @@ export default function DishCrud() {
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div>
                   <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                    Ordem de Exibição
+                    Ordem de Exibição no Menu
                   </label>
                   <input
                     type="number"
