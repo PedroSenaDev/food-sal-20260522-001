@@ -87,7 +87,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       } else {
         // Estritamente limitado ao limite máximo!
         if (currentGroupSelections.length >= group.max) {
-          setErrorMsg(`Você pode selecionar no máximo ${group.max} opção(ões) em "${group.title}"`);
+          setErrorMsg(`Você pode selecionar no máximo ${group.max} opções em "${group.title}"`);
           return;
         }
         setSelections(prev => ({
@@ -105,7 +105,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       for (const group of dish.customizationOptions) {
         const chosen = selections[group.id] || [];
         if (chosen.length < group.min) {
-          setErrorMsg(`Por favor, selecione pelo menos ${group.min} opção(ões) em "${group.title}"`);
+          setErrorMsg(`Por favor, selecione pelo menos ${group.min} opções em "${group.title}"`);
           return;
         }
       }
@@ -269,7 +269,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                             <span className="text-[10px] text-stone-550 font-semibold block mt-0.5 leading-tight">
                               {isRadio 
                                 ? `Selecione 1 opção` 
-                                : `Escolha até ${group.max} opção(ões)`}
+                                : `Escolha até ${group.max} opções`}
                             </span>
                             {group.min > 0 && (
                               <span className="text-[9px] text-brand-red font-bold uppercase block mt-1">

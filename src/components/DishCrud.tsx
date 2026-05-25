@@ -16,8 +16,7 @@ import {
   EyeOff, 
   AlertCircle,
   Loader2,
-  Sliders,
-  Sparkles
+  Sliders
 } from 'lucide-react';
 
 export default function DishCrud() {
@@ -530,7 +529,7 @@ export default function DishCrud() {
               {isCustomizable && (
                 <div className="space-y-4 p-3 md:p-4 bg-stone-50 rounded-xl md:rounded-2xl border border-stone-200">
                   <div className="flex justify-between items-center border-b border-stone-200 pb-2 gap-2">
-                    <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1">
+                    <span className="text-[11px] font-bold text-stone-850 uppercase tracking-wider">
                       Estrutura de Opcionais
                     </span>
                     <button
@@ -548,19 +547,23 @@ export default function DishCrud() {
                   ) : (
                     <div className="space-y-3">
                       {customizationOptions.map((group) => (
-                        <div key={group.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-sm relative space-y-3">
+                        <div key={group.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-sm space-y-3">
                           
-                          {/* Remove Group Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveGroup(group.id)}
-                            className="absolute top-2.5 right-2.5 p-1 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
-                          >
-                            <X size={14} />
-                          </button>
+                          {/* Clean Header with Remove Button next to group identifier */}
+                          <div className="flex justify-between items-center border-b border-stone-100 pb-1.5">
+                            <span className="text-[10px] font-bold text-stone-450 uppercase">Grupo de Opcionais</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveGroup(group.id)}
+                              className="p-1 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
+                              title="Excluir Grupo"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
 
                           {/* Group Title and Rules */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="sm:col-span-2 flex flex-col">
                               <label className="text-[9px] font-bold text-stone-550 uppercase">Título do Grupo (No cardápio: Limite grátis = Máximo)</label>
                               <input
@@ -569,7 +572,7 @@ export default function DishCrud() {
                                 value={group.title}
                                 onChange={(e) => handleGroupTitleChange(group.id, e.target.value)}
                                 placeholder="Ex: Escolha seus acompanhamentos"
-                                className="w-full px-2.5 py-1.5 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
+                                className="w-full px-2.5 py-1.5 mt-1 rounded-lg border border-stone-200/80 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -585,7 +588,7 @@ export default function DishCrud() {
                                 />
                               </div>
                               <div className="flex flex-col">
-                                <label className="text-[9px] font-bold text-stone-550 uppercase" title="Até esta quantidade é grátis, depois cobra">Qtd Grátis (Máx)</label>
+                                <label className="text-[9px] font-bold text-stone-550 uppercase">MAXIMO</label>
                                 <input
                                   type="number"
                                   min={1}

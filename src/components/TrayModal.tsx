@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import { X, ShoppingBag, Trash2, Plus, Minus, Send } from 'lucide-react';
 
@@ -17,23 +17,15 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     cartTotal, 
     cartCount, 
     tableNumber, 
-    setTableNumber, 
     settings,
     createOrder,
     clearCart
   } = useApp();
 
-  const [inputTable, setInputTable] = useState(tableNumber || '');
-
   if (!isOpen) return null;
 
   const formatPrice = (val: number) => {
     return `${settings.currencySymbol} ${val.toFixed(2)}`;
-  };
-
-  const handleTableChange = (val: string) => {
-    setInputTable(val);
-    setTableNumber(val || null);
   };
 
   const handleSendOrder = async () => {
@@ -61,7 +53,7 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
 
     try {
       await createOrder({
-        tableNumber: inputTable || 'Balcão',
+        tableNumber: tableNumber || 'Balcão',
         items: orderItems,
         total: cartTotal
       });
@@ -71,7 +63,7 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
 
     // 2. Format WhatsApp message
     const business = settings.businessName;
-    const tableStr = inputTable ? `*MESA:* ${inputTable}` : '*MESA:* Não informada (Balcão/Viagem)';
+    const tableStr = tableNumber ? `*MESA:* ${tableNumber}` : '*MESA:* Não informada (Balcão/Viagem)';
     
     let itemsStr = '';
     cart.forEach(item => {
@@ -141,20 +133,6 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
         {/* Drawer Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           
-          {/* Table Input Setup */}
-          <div className="p-3 bg-[#F5E6D3]/40 border border-brand-red/10 rounded-2xl flex items-center justify-between gap-3 shadow-inner">
-            <div className="flex items-center gap-2 text-brand-darkred">
-              <span className="text-xs font-bold uppercase tracking-wider">Mesa atual:</span>
-            </div>
-            <input
-              type="text"
-              value={inputTable}
-              onChange={(e) => handleTableChange(e.target.value)}
-              placeholder="Nº da Mesa"
-              className="w-24 px-3 py-1.5 text-center text-sm font-bold border border-stone-200 focus:border-brand-red rounded-xl outline-none text-stone-800 bg-white"
-            />
-          </div>
-
           {/* Cart Items List */}
           {cart.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center text-stone-400 space-y-3">
