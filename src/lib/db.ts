@@ -24,8 +24,25 @@ const STORAGE_KEYS = {
   CATEGORIES: 'foodsal_categories',
   DISHES: 'foodsal_dishes',
   SETTINGS: 'foodsal_settings',
+  ORDERS: 'foodsal_orders',
   LOGGED_IN: 'foodsal_logged_in'
 };
+
+export interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+  notes?: string;
+  customizations?: string;
+}
+
+export interface Order {
+  id: string;
+  tableNumber: string;
+  items: OrderItem[];
+  total: number;
+  createdAt: string;
+}
 
 // Helper to initialize local storage if empty
 export function initializeLocalStorage() {
@@ -40,6 +57,9 @@ export function initializeLocalStorage() {
   if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(INITIAL_SETTINGS));
   }
+  if (!localStorage.getItem(STORAGE_KEYS.ORDERS)) {
+    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify([]));
+  }
 }
 
 // Reset Database function
@@ -48,6 +68,7 @@ export function resetLocalDatabase() {
   localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(INITIAL_CATEGORIES));
   localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(INITIAL_DISHES));
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(INITIAL_SETTINGS));
+  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify([]));
   window.location.reload();
 }
 
@@ -331,6 +352,77 @@ export async function deleteDish(id: string): Promise<boolean> {
   const filtered = dishes.filter(d => d.id !== id);
   localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(filtered));
   return true;
+}
+
+// ==========================================
+// REAL ORDERS HISTORY CRUD
+// ==========================================
+
+export async function getOrders(): Promise<Order[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        return data.map(item => ({
+          id: item.id,
+          tableNumber: item.table_number,
+          items: typeof item.items === 'string' ? JSON.parse(item.items) : item.items,
+          total: Number(item.total),
+          createdAt: item.created_at
+        }));
+      }
+    } catch (e) {
+      console.warn('Supabase orders fetch ignored or failed, using local storage fallback', e);
+    }
+  }
+
+  if (!isBrowser) return [];
+
+  initializeLocalStorage();
+  const data = localStorage.getItem(STORAGE_KEYS.ORDERS);
+  return data ? JSON.parse(data) : [];
+}
+
+export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise<Order> {
+  const newId = `ord-${Math.floor(1000 + Math.random() * 9000)}`;
+  const createdAt = new Date().toISOString();
+  const fullOrder: Order = {
+    id: newId,
+    tableNumber: order.tableNumber,
+    items: order.items,
+    total: order.total,
+    createdAt
+  };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .insert([{
+          id: newId,
+          table_number: order.tableNumber,
+          items: JSON.stringify(order.items),
+          total: order.total,
+          created_at: createdAt
+        }]);
+      
+      if (!error) return fullOrder;
+    } catch (e) {
+      console.error('Supabase saveOrder failed', e);
+    }
+  }
+
+  if (!isBrowser) return fullOrder;
+
+  initializeLocalStorage();
+  const orders = await getOrders();
+  orders.unshift(fullOrder); // Prepend so newest is first
+  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  return fullOrder;
 }
 
 // ==========================================

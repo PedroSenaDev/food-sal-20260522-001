@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { X, ShoppingBag, Trash2, Plus, Minus, Send, Hash } from 'lucide-react';
+import { X, ShoppingBag, Trash2, Plus, Minus, Send } from 'lucide-react';
 
 interface TrayModalProps {
   isOpen: boolean;
@@ -18,7 +18,9 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     cartCount, 
     tableNumber, 
     setTableNumber, 
-    settings 
+    settings,
+    createOrder,
+    clearCart
   } = useApp();
 
   const [inputTable, setInputTable] = useState(tableNumber || '');
@@ -34,10 +36,40 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     setTableNumber(val || null);
   };
 
-  const handleSendOrder = () => {
+  const handleSendOrder = async () => {
     if (cart.length === 0) return;
 
-    // Format WhatsApp message
+    // 1. Save REAL order history in database/localStorage
+    const orderItems = cart.map(item => {
+      const priceToUse = item.customPrice !== undefined ? item.customPrice : item.dish.price;
+      
+      let customsSummary = '';
+      if (item.customizations && item.customizations.length > 0) {
+        customsSummary = item.customizations.map(g => 
+          `${g.groupTitle}: ${g.items.map(it => it.name).join(', ')}`
+        ).join(' | ');
+      }
+
+      return {
+        name: item.dish.name,
+        quantity: item.quantity,
+        price: priceToUse,
+        notes: item.notes || undefined,
+        customizations: customsSummary || undefined
+      };
+    });
+
+    try {
+      await createOrder({
+        tableNumber: inputTable || 'Balcão',
+        items: orderItems,
+        total: cartTotal
+      });
+    } catch (e) {
+      console.error('Failed to log order in history database', e);
+    }
+
+    // 2. Format WhatsApp message
     const business = settings.businessName;
     const tableStr = inputTable ? `*MESA:* ${inputTable}` : '*MESA:* Não informada (Balcão/Viagem)';
     
@@ -77,6 +109,8 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${settings.whatsappNumber}&text=${encodedMessage}`;
     
     window.open(whatsappUrl, '_blank');
+    clearCart();
+    onClose();
   };
 
   return (

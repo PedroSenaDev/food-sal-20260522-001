@@ -6,12 +6,15 @@ import {
   getCategories, 
   getDishes, 
   getSettings, 
+  getOrders,
+  saveOrder as dbSaveOrder,
   saveCategory as dbSaveCategory, 
   deleteCategory as dbDeleteCategory, 
   saveDish as dbSaveDish, 
   deleteDish as dbDeleteDish, 
   saveSettings as dbSaveSettings,
-  initializeLocalStorage
+  initializeLocalStorage,
+  Order
 } from '../lib/db';
 
 export interface SelectedCustomization {
@@ -32,6 +35,7 @@ interface AppContextType {
   categories: Category[];
   dishes: Dish[];
   settings: SystemSettings;
+  orders: Order[];
   activeSection: 'adult' | 'kids';
   setActiveSection: (section: 'adult' | 'kids') => void;
   selectedCategory: string | null;
@@ -67,6 +71,7 @@ interface AppContextType {
   addOrUpdateDish: (dish: Omit<Dish, 'id'> & { id?: string }) => Promise<void>;
   removeDish: (id: string) => Promise<void>;
   updateSettings: (settings: SystemSettings) => Promise<void>;
+  createOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<Order>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -81,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     address: 'Av. Paulista, 1000',
     currencySymbol: 'R$'
   });
+  const [orders, setOrders] = useState<Order[]>([]);
   
   const [activeSection, setActiveSection] = useState<'adult' | 'kids'>('adult');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -96,14 +102,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       initializeLocalStorage();
-      const [cats, items, config] = await Promise.all([
+      const [cats, items, config, ords] = await Promise.all([
         getCategories(),
         getDishes(),
-        getSettings()
+        getSettings(),
+        getOrders()
       ]);
       setCategories(cats);
       setDishes(items);
       setSettings(config);
+      setOrders(ords);
     } catch (e) {
       console.error('Failed to load data', e);
     } finally {
@@ -252,11 +260,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSettings(saved);
   };
 
+  const createOrder = async (orderPayload: Omit<Order, 'id' | 'createdAt'>): Promise<Order> => {
+    const savedOrder = await dbSaveOrder(orderPayload);
+    setOrders(prev => [savedOrder, ...prev]);
+    return savedOrder;
+  };
+
   return (
     <AppContext.Provider value={{
       categories,
       dishes,
       settings,
+      orders,
       activeSection,
       setActiveSection,
       selectedCategory,
@@ -281,7 +296,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       removeCategory,
       addOrUpdateDish,
       removeDish,
-      updateSettings
+      updateSettings,
+      createOrder
     }}>
       {children}
     </AppContext.Provider>
