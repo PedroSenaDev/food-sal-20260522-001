@@ -54,9 +54,9 @@ export default function Home() {
         
         <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col items-center justify-center">
           
-          {/* Stylized logo text with elegant outline on 'Sal' using F5E6D3 beige color */}
+          {/* Stylized logo text with elegant fine outline on 'Sal' using F5E6D3 beige color */}
           <h1 className="font-serif text-5xl md:text-7xl font-extrabold tracking-tight text-[#F5E6D3] drop-shadow-sm select-none">
-            Food<span className="text-brand-red font-serif font-semibold italic [text-shadow:-1.5px_-1.5px_0_#F5E6D3,1.5px_-1.5px_0_#F5E6D3,-1.5px_1.5px_0_#F5E6D3,1.5px_1.5px_0_#F5E6D3]">Sal</span>
+            Food<span className="text-brand-red font-serif font-semibold italic [text-shadow:-0.8px_-0.8px_0_#F5E6D3,0.8px_-0.8px_0_#F5E6D3,-0.8px_0.8px_0_#F5E6D3,0.8px_0.8px_0_#F5E6D3]">Sal</span>
           </h1>
 
           {/* Subtitle tightly spaced */}
