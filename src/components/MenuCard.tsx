@@ -178,18 +178,14 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
 
         {/* Dish Information */}
         <div className="flex flex-col flex-1 p-3 sm:p-4">
-          <div className="flex justify-between items-start gap-1.5 mb-1">
-            {categoryName && (
-              <span className="text-[9px] font-bold tracking-widest text-brand-red/80 uppercase truncate max-w-full">
-                {categoryName}
-              </span>
-            )}
-            {dish.sizeOrWeight && (
-              <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-md shrink-0">
+          {/* Top line with specs if available */}
+          {dish.sizeOrWeight && (
+            <div className="flex justify-end mb-1">
+              <span className="text-[9px] sm:text-[10px] font-bold text-stone-450 bg-stone-100 px-1.5 py-0.5 rounded-md shrink-0">
                 {dish.sizeOrWeight}
               </span>
-            )}
-          </div>
+            </div>
+          )}
           <h3 className="font-serif text-sm sm:text-lg font-bold text-stone-900 group-hover:text-brand-red transition-colors duration-200 line-clamp-1 leading-snug">
             {dish.name}
           </h3>
@@ -349,11 +345,11 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
 
             </div>
 
-            {/* Modal Sticky Footer */}
-            <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-4 shrink-0">
+            {/* Modal Sticky Footer with smaller, compact buttons */}
+            <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-4 shrink-0">
               <div className="flex flex-col">
-                <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Total</span>
-                <span className="text-lg font-extrabold text-stone-900 leading-tight">
+                <span className="text-[9px] text-stone-500 font-bold uppercase tracking-wider">Total</span>
+                <span className="text-base sm:text-lg font-extrabold text-stone-900 leading-tight">
                   {formatPrice(currentPrice)}
                 </span>
               </div>
@@ -361,14 +357,14 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsDetailOpen(false)}
-                  className="py-3 px-4 rounded-xl border border-stone-250 hover:bg-stone-100 text-stone-600 font-bold text-xs uppercase tracking-wider cursor-pointer transition-all"
+                  className="py-2 px-3.5 rounded-xl border border-stone-250 hover:bg-stone-100 text-stone-600 font-bold text-xs uppercase tracking-wider cursor-pointer transition-all"
                 >
                   Voltar
                 </button>
                 <button
                   onClick={handleAddToCart}
                   disabled={addedAnimation}
-                  className={`py-3.5 px-6 rounded-xl text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center gap-1.5 transition-all duration-300 ${
+                  className={`py-2 px-4.5 rounded-xl text-white font-bold text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 transition-all duration-300 ${
                     addedAnimation 
                       ? 'bg-emerald-600 shadow-emerald-200' 
                       : 'bg-brand-red hover:bg-brand-darkred shadow-brand-red/10 cursor-pointer active:scale-98'
@@ -376,11 +372,11 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                 >
                   {addedAnimation ? (
                     <>
-                      <CheckCircle size={16} />
+                      <CheckCircle size={14} />
                       <span>Adicionado!</span>
                     </>
                   ) : (
-                    <span>Adicionar ao Pedido</span>
+                    <span>Adicionar</span>
                   )}
                 </button>
               </div>
