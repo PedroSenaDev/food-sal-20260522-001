@@ -11,7 +11,6 @@ import {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Validação estrita para garantir que as credenciais são reais e não placeholders de exemplo
 export const isSupabaseConfigured = !!(
   supabaseUrl && 
   supabaseUrl.startsWith('https://') && 
@@ -29,7 +28,6 @@ export const supabase = isSupabaseConfigured
 
 const isBrowser = typeof window !== 'undefined';
 
-// LocalStorage Keys
 const STORAGE_KEYS = {
   CATEGORIES: 'foodsal_categories',
   DISHES: 'foodsal_dishes',
@@ -54,7 +52,75 @@ export interface Order {
   createdAt: string;
 }
 
-// Helper to initialize local storage if empty
+// Testa o estado atual de conexão do Supabase para ajudar no diagnóstico do usuário
+export async function testSupabaseConnection(): Promise<{ 
+  connected: boolean; 
+  error?: string; 
+  tablesExist?: { categories: boolean; dishes: boolean; settings: boolean; orders: boolean };
+  rlsWriteAllowed?: boolean;
+}> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { connected: false, error: 'As chaves do Supabase não estão configuradas ou são inválidas.' };
+  }
+
+  const status = {
+    connected: true,
+    tablesExist: { categories: false, dishes: false, settings: false, orders: false },
+    rlsWriteAllowed: false
+  };
+
+  try {
+    // 1. Testa tabela de categorias
+    const catCheck = await supabase.from('categories').select('id').limit(1);
+    status.tablesExist.categories = !catCheck.error;
+
+    // 2. Testa tabela de pratos
+    const dishCheck = await supabase.from('dishes').select('id').limit(1);
+    status.tablesExist.dishes = !dishCheck.error;
+
+    // 3. Testa tabela de configurações
+    const settingsCheck = await supabase.from('settings').select('key').limit(1);
+    status.tablesExist.settings = !settingsCheck.error;
+
+    // 4. Testa tabela de pedidos
+    const ordersCheck = await supabase.from('orders').select('id').limit(1);
+    status.tablesExist.orders = !ordersCheck.error;
+
+    if (catCheck.error || dishCheck.error || settingsCheck.error || ordersCheck.error) {
+      const firstError = catCheck.error || dishCheck.error || settingsCheck.error || ordersCheck.error;
+      return { 
+        ...status, 
+        connected: false, 
+        error: `Tabelas ausentes ou sem permissão de leitura. Erro: ${firstError?.message}` 
+      };
+    }
+
+    // 5. Testa se escrita (Insert) é permitida (RLS desativado ou liberado para público)
+    const testCatId = `test-connection-${Date.now()}`;
+    const writeCheck = await supabase.from('categories').insert([{ 
+      id: testCatId, 
+      name: 'Teste Conexão', 
+      section: 'adult', 
+      sort_order: 9999 
+    }]);
+
+    if (!writeCheck.error) {
+      status.rlsWriteAllowed = true;
+      // Apaga o registro de teste
+      await supabase.from('categories').delete().eq('id', testCatId);
+    } else {
+      return {
+        ...status,
+        error: `Leitura funcionando, mas Escrita negada por RLS. Erro: ${writeCheck.error.message}`
+      };
+    }
+
+    return status;
+  } catch (err: any) {
+    return { connected: false, error: err.message || 'Erro de rede desconhecido ao tentar acessar o Supabase.' };
+  }
+}
+
 export function initializeLocalStorage() {
   if (!isBrowser) return;
 
@@ -72,7 +138,6 @@ export function initializeLocalStorage() {
   }
 }
 
-// Reset Database function
 export function resetLocalDatabase() {
   if (!isBrowser) return;
   localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(INITIAL_CATEGORIES));
@@ -82,29 +147,27 @@ export function resetLocalDatabase() {
   window.location.reload();
 }
 
-// ==========================================
-// CATEGORIES CRUD
-// ==========================================
-
 export async function getCategories(): Promise<Category[]> {
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('sort_order', { ascending: true });
-    
-    if (error) throw error;
-    if (data && data.length > 0) {
-      return data.map(item => ({
-        id: item.id,
-        name: item.name,
-        section: item.section,
-        sortOrder: item.sort_order
-      }));
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      
+      if (!error && data && data.length > 0) {
+        return data.map(item => ({
+          id: item.id,
+          name: item.name,
+          section: item.section,
+          sortOrder: item.sort_order
+        }));
+      }
+    } catch (e) {
+      console.warn("Supabase categories read error, falling back to local storage:", e);
     }
   }
 
-  // Fallback para LocalStorage se o Supabase não estiver configurado ou estiver vazio
   if (!isBrowser) {
     return INITIAL_CATEGORIES;
   }
@@ -131,29 +194,32 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
       sort_order: category.sortOrder
     };
 
-    if (category.id) {
-      const { error } = await supabase
-        .from('categories')
-        .update({
-          name: category.name,
-          section: category.section,
-          sort_order: category.sortOrder
-        })
-        .eq('id', category.id);
-      if (error) throw error;
-    } else {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([payload])
-        .select();
-      if (error) throw error;
-      if (data && data[0]) {
-        fullCategory.id = data[0].id;
+    try {
+      if (category.id) {
+        const { error } = await supabase
+          .from('categories')
+          .update({
+            name: category.name,
+            section: category.section,
+            sort_order: category.sortOrder
+          })
+          .eq('id', category.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('categories')
+          .insert([payload])
+          .select();
+        if (error) throw error;
+        if (data && data[0]) {
+          fullCategory.id = data[0].id;
+        }
       }
+    } catch (e) {
+      console.error("Failed to write category on Supabase, writing to LocalStorage fallback only:", e);
     }
   }
 
-  // Salva no LocalStorage para manter consistência e sincronismo local offline
   if (isBrowser) {
     initializeLocalStorage();
     const categories = await getCategories();
@@ -172,11 +238,15 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
 
 export async function deleteCategory(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    } catch (e) {
+      console.error("Failed to delete category on Supabase:", e);
+    }
   }
 
   if (!isBrowser) return false;
@@ -186,7 +256,6 @@ export async function deleteCategory(id: string): Promise<boolean> {
   const filtered = categories.filter(c => c.id !== id);
   localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(filtered));
 
-  // Cascata de exclusão dos pratos daquela categoria
   const dishes = await getDishes();
   const filteredDishes = dishes.filter(d => d.categoryId !== id);
   localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(filteredDishes));
@@ -194,36 +263,35 @@ export async function deleteCategory(id: string): Promise<boolean> {
   return true;
 }
 
-// ==========================================
-// DISHES CRUD
-// ==========================================
-
 export async function getDishes(): Promise<Dish[]> {
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
-      .from('dishes')
-      .select('*')
-      .order('sort_order', { ascending: true });
-    
-    if (error) throw error;
-    if (data && data.length > 0) {
-      return data.map(item => ({
-        id: item.id,
-        categoryId: item.category_id,
-        name: item.name,
-        description: item.description,
-        price: Number(item.price),
-        image: item.image_url || '',
-        active: item.active,
-        section: item.section,
-        sortOrder: item.sort_order,
-        isCustomizable: item.is_customizable,
-        customizationOptions: typeof item.customization_options === 'string' 
-          ? JSON.parse(item.customization_options) 
-          : item.customization_options || [],
-        subSection: item.sub_section,
-        sizeOrWeight: item.size_or_weight
-      }));
+    try {
+      const { data, error } = await supabase
+        .from('dishes')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      
+      if (!error && data && data.length > 0) {
+        return data.map(item => ({
+          id: item.id,
+          categoryId: item.category_id,
+          name: item.name,
+          description: item.description,
+          price: Number(item.price),
+          image: item.image_url || '',
+          active: item.active,
+          section: item.section,
+          sortOrder: item.sort_order,
+          isCustomizable: item.is_customizable,
+          customizationOptions: typeof item.customization_options === 'string' 
+            ? JSON.parse(item.customization_options) 
+            : item.customization_options || [],
+          subSection: item.sub_section,
+          sizeOrWeight: item.size_or_weight
+        }));
+      }
+    } catch (e) {
+      console.warn("Supabase dishes read error, falling back to local storage:", e);
     }
   }
 
@@ -271,34 +339,38 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
       size_or_weight: dish.sizeOrWeight || null
     };
 
-    if (dish.id) {
-      const { error } = await supabase
-        .from('dishes')
-        .update({
-          category_id: dish.categoryId,
-          name: dish.name,
-          description: dish.description,
-          price: dish.price,
-          image_url: dish.image,
-          active: dish.active,
-          section: dish.section,
-          sort_order: dish.sortOrder,
-          is_customizable: dish.isCustomizable || false,
-          customization_options: dish.customizationOptions || [],
-          sub_section: dish.subSection || null,
-          size_or_weight: dish.sizeOrWeight || null
-        })
-        .eq('id', dish.id);
-      if (error) throw error;
-    } else {
-      const { data, error } = await supabase
-        .from('dishes')
-        .insert([payload])
-        .select();
-      if (error) throw error;
-      if (data && data[0]) {
-        fullDish.id = data[0].id;
+    try {
+      if (dish.id) {
+        const { error } = await supabase
+          .from('dishes')
+          .update({
+            category_id: dish.categoryId,
+            name: dish.name,
+            description: dish.description,
+            price: dish.price,
+            image_url: dish.image,
+            active: dish.active,
+            section: dish.section,
+            sort_order: dish.sortOrder,
+            is_customizable: dish.isCustomizable || false,
+            customization_options: dish.customizationOptions || [],
+            sub_section: dish.subSection || null,
+            size_or_weight: dish.sizeOrWeight || null
+          })
+          .eq('id', dish.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('dishes')
+          .insert([payload])
+          .select();
+        if (error) throw error;
+        if (data && data[0]) {
+          fullDish.id = data[0].id;
+        }
       }
+    } catch (e) {
+      console.error("Failed to write dish on Supabase:", e);
     }
   }
 
@@ -321,11 +393,15 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
 
 export async function deleteDish(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase
-      .from('dishes')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('dishes')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    } catch (e) {
+      console.error("Failed to delete dish on Supabase:", e);
+    }
   }
 
   if (!isBrowser) return false;
@@ -337,26 +413,25 @@ export async function deleteDish(id: string): Promise<boolean> {
   return true;
 }
 
-// ==========================================
-// REAL ORDERS HISTORY CRUD
-// ==========================================
-
 export async function getOrders(): Promise<Order[]> {
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    if (data && data.length > 0) {
-      return data.map(item => ({
-        id: item.id,
-        tableNumber: item.table_number,
-        items: typeof item.items === 'string' ? JSON.parse(item.items) : item.items,
-        total: Number(item.total),
-        createdAt: item.created_at
-      }));
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (!error && data && data.length > 0) {
+        return data.map(item => ({
+          id: item.id,
+          tableNumber: item.table_number,
+          items: typeof item.items === 'string' ? JSON.parse(item.items) : item.items,
+          total: Number(item.total),
+          createdAt: item.created_at
+        }));
+      }
+    } catch (e) {
+      console.warn("Supabase orders read error:", e);
     }
   }
 
@@ -379,16 +454,20 @@ export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise
   };
 
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase
-      .from('orders')
-      .insert([{
-        id: newId,
-        table_number: order.tableNumber,
-        items: JSON.stringify(order.items),
-        total: order.total,
-        created_at: createdAt
-      }]);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .insert([{
+          id: newId,
+          table_number: order.tableNumber,
+          items: JSON.stringify(order.items),
+          total: order.total,
+          created_at: createdAt
+        }]);
+      if (error) throw error;
+    } catch (e) {
+      console.error("Failed to save order on Supabase:", e);
+    }
   }
 
   if (isBrowser) {
@@ -401,25 +480,24 @@ export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise
   return fullOrder;
 }
 
-// ==========================================
-// SETTINGS
-// ==========================================
-
 export async function getSettings(): Promise<SystemSettings> {
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('*');
-    
-    if (error) throw error;
-    if (data && data.length > 0) {
-      const settings: Partial<SystemSettings> = {};
-      data.forEach(item => {
-        if (item.key in INITIAL_SETTINGS) {
-          settings[item.key as keyof SystemSettings] = item.value;
-        }
-      });
-      return { ...INITIAL_SETTINGS, ...settings };
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*');
+      
+      if (!error && data && data.length > 0) {
+        const settings: Partial<SystemSettings> = {};
+        data.forEach(item => {
+          if (item.key in INITIAL_SETTINGS) {
+            settings[item.key as keyof SystemSettings] = item.value;
+          }
+        });
+        return { ...INITIAL_SETTINGS, ...settings };
+      }
+    } catch (e) {
+      console.warn("Supabase settings read error, falling back to local storage:", e);
     }
   }
 
@@ -434,13 +512,17 @@ export async function getSettings(): Promise<SystemSettings> {
 
 export async function saveSettings(settings: SystemSettings): Promise<SystemSettings> {
   if (isSupabaseConfigured && supabase) {
-    const promises = Object.entries(settings).map(async ([key, value]) => {
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ key, value });
-      if (error) throw error;
-    });
-    await Promise.all(promises);
+    try {
+      const promises = Object.entries(settings).map(async ([key, value]) => {
+        const { error } = await supabase
+          .from('settings')
+          .upsert({ key, value });
+        if (error) throw error;
+      });
+      await Promise.all(promises);
+    } catch (e) {
+      console.error("Failed to write settings on Supabase:", e);
+    }
   }
 
   if (isBrowser) {
@@ -450,10 +532,6 @@ export async function saveSettings(settings: SystemSettings): Promise<SystemSett
 
   return settings;
 }
-
-// ==========================================
-// IMAGE COMPRESSOR & UPLOAD (Web-Optimized Compressor)
-// ==========================================
 
 export async function uploadImage(file: File): Promise<string> {
   const compressImage = (imageFile: File): Promise<string> => {
@@ -487,7 +565,6 @@ export async function uploadImage(file: File): Promise<string> {
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // Convert to compressed Web-Optimized JPEG (approx. 15-20KB!)
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
           resolve(compressedBase64);
         };
@@ -495,10 +572,8 @@ export async function uploadImage(file: File): Promise<string> {
     });
   };
 
-  // 1. Perform client-side compression first
   const webOptimizedImageBase64 = await compressImage(file);
 
-  // 2. Fallback upload to Cloudinary if configured, otherwise use optimized Base64
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
   const cloudinaryUploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
 
@@ -525,6 +600,5 @@ export async function uploadImage(file: File): Promise<string> {
     }
   }
 
-  // Returns the lightweight optimized Base64 image
   return webOptimizedImageBase64;
 }
