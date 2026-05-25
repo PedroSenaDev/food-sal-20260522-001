@@ -75,10 +75,14 @@ export async function getCategories(): Promise<Category[]> {
     }
   }
 
-  // Fallback
+  // Fallback - SSR Safe
+  if (!isBrowser) {
+    return INITIAL_CATEGORIES;
+  }
+
   initializeLocalStorage();
   const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-  return data ? JSON.parse(data) : [];
+  return data ? JSON.parse(data) : INITIAL_CATEGORIES;
 }
 
 export async function saveCategory(category: Omit<Category, 'id'> & { id?: string }): Promise<Category> {
@@ -121,6 +125,8 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
   }
 
   // Fallback
+  if (!isBrowser) return fullCategory;
+
   initializeLocalStorage();
   const categories = await getCategories();
   const index = categories.findIndex(c => c.id === category.id);
@@ -150,6 +156,8 @@ export async function deleteCategory(id: string): Promise<boolean> {
   }
 
   // Fallback
+  if (!isBrowser) return false;
+
   initializeLocalStorage();
   const categories = await getCategories();
   const filtered = categories.filter(c => c.id !== id);
@@ -192,10 +200,14 @@ export async function getDishes(): Promise<Dish[]> {
     }
   }
 
-  // Fallback
+  // Fallback - SSR Safe
+  if (!isBrowser) {
+    return INITIAL_DISHES;
+  }
+
   initializeLocalStorage();
   const data = localStorage.getItem(STORAGE_KEYS.DISHES);
-  return data ? JSON.parse(data) : [];
+  return data ? JSON.parse(data) : INITIAL_DISHES;
 }
 
 export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promise<Dish> {
@@ -222,7 +234,7 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
         image_url: dish.image,
         active: dish.active,
         section: dish.section,
-        sort_order: dish.sortOrder
+        sort_order: dish.sort_order
       };
 
       if (dish.id) {
@@ -248,6 +260,8 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
   }
 
   // Fallback
+  if (!isBrowser) return fullDish;
+
   initializeLocalStorage();
   const dishes = await getDishes();
   const index = dishes.findIndex(d => d.id === dish.id);
@@ -277,6 +291,8 @@ export async function deleteDish(id: string): Promise<boolean> {
   }
 
   // Fallback
+  if (!isBrowser) return false;
+
   initializeLocalStorage();
   const dishes = await getDishes();
   const filtered = dishes.filter(d => d.id !== id);
@@ -310,7 +326,11 @@ export async function getSettings(): Promise<SystemSettings> {
     }
   }
 
-  // Fallback
+  // Fallback - SSR Safe
+  if (!isBrowser) {
+    return INITIAL_SETTINGS;
+  }
+
   initializeLocalStorage();
   const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
   return data ? JSON.parse(data) : INITIAL_SETTINGS;
@@ -333,6 +353,8 @@ export async function saveSettings(settings: SystemSettings): Promise<SystemSett
   }
 
   // Fallback
+  if (!isBrowser) return settings;
+
   initializeLocalStorage();
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   return settings;
