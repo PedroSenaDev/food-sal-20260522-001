@@ -42,7 +42,7 @@ export default function DishCrud() {
   // Loading and helper state
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter states for the list view
   const [listCategory, setListCategory] = useState<string>('all');
@@ -213,6 +213,11 @@ export default function DishCrud() {
     setIsOpen(false);
   };
 
+  const handleDelete = async (id: string) => {
+    await removeDish(id);
+    setConfirmDeleteId(null);
+  };
+
   // Filter dishes shown in list view
   const filteredDishes = dishes.filter(dish => {
     const matchesCategory = listCategory === 'all' || dish.categoryId === listCategory;
@@ -329,8 +334,8 @@ export default function DishCrud() {
                         onClick={() => handleToggleActive(dish)}
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold cursor-pointer transition-colors ${
                           dish.active
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-stone-100 text-stone-400'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-stone-100 text-stone-400 border border-stone-200'
                         }`}
                         title={dish.active ? 'Desativar item' : 'Ativar item'}
                       >
@@ -696,7 +701,7 @@ export default function DishCrud() {
                     required
                     value={sortOrder}
                     onChange={(e) => setSortOrder(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200/80 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 font-mono"
                   />
                 </div>
                 
