@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { X, MapPin, Phone, Clock, ShieldCheck, Instagram, Globe } from 'lucide-react';
+import { X, MapPin, Phone, Clock, ShieldCheck, Globe } from 'lucide-react';
 import Link from 'next/link';
 
 interface InfoSidebarProps {
@@ -120,15 +120,10 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
             <div className="flex gap-3">
               <a 
                 href="#" 
-                className="p-2 rounded-lg bg-stone-100 hover:bg-brand-red/5 text-stone-600 hover:text-brand-red transition-all cursor-pointer"
+                className="p-2.5 rounded-lg bg-stone-100 hover:bg-brand-red/5 text-stone-600 hover:text-brand-red font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5"
               >
-                <Instagram size={16} />
-              </a>
-              <a 
-                href="#" 
-                className="p-2 rounded-lg bg-stone-100 hover:bg-brand-red/5 text-stone-600 hover:text-brand-red transition-all cursor-pointer"
-              >
-                <Globe size={16} />
+                <Globe size={14} />
+                <span>Instagram</span>
               </a>
             </div>
           </div>
