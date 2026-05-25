@@ -54,9 +54,9 @@ export default function Home() {
         
         <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col items-center justify-center">
           
-          {/* Stylized logo text */}
+          {/* Stylized logo text with elegant outline on 'Sal' using F5E6D3 beige color */}
           <h1 className="font-serif text-5xl md:text-7xl font-extrabold tracking-tight text-[#F5E6D3] drop-shadow-sm select-none">
-            Food<span className="text-brand-red font-serif font-semibold italic">Sal</span>
+            Food<span className="text-brand-red font-serif font-semibold italic [text-shadow:-1.5px_-1.5px_0_#F5E6D3,1.5px_-1.5px_0_#F5E6D3,-1.5px_1.5px_0_#F5E6D3,1.5px_1.5px_0_#F5E6D3]">Sal</span>
           </h1>
 
           {/* Subtitle tightly spaced */}
@@ -123,7 +123,7 @@ export default function Home() {
             )}
           </div>
         ) : selectedCategory ? (
-          // Individual category display (Now 2 columns on mobile!)
+          // Individual category display
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 animate-in fade-in duration-300">
             {filteredDishes.map(dish => {
               const category = categories.find(c => c.id === dish.categoryId);
@@ -137,35 +137,47 @@ export default function Home() {
             })}
           </div>
         ) : (
-          // Organized display: render section-by-section
+          // Organized display: render section-by-section with beautiful dividers between them
           <div className="space-y-12 animate-in fade-in duration-300">
-            {categories.map(category => {
+            {categories.map((category, index) => {
               const categoryDishes = filteredDishes.filter(d => d.categoryId === category.id);
               if (categoryDishes.length === 0) return null;
 
               const cleanCategoryName = stripEmojis(category.name);
 
               return (
-                <div key={category.id} className="space-y-5">
-                  <div className="flex items-baseline gap-3 border-b border-stone-200/60 pb-3">
-                    <h2 className="font-sans font-extrabold text-base sm:text-xl text-stone-900 tracking-wider uppercase">
-                      {cleanCategoryName}
-                    </h2>
-                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
-                      ({categoryDishes.length} {categoryDishes.length === 1 ? 'item' : 'itens'})
-                    </span>
+                <React.Fragment key={category.id}>
+                  {/* Category Section Block */}
+                  <div className="space-y-5">
+                    <div className="flex items-baseline gap-3 border-b border-stone-200/60 pb-3">
+                      <h2 className="font-sans font-extrabold text-base sm:text-xl text-stone-900 tracking-wider uppercase">
+                        {cleanCategoryName}
+                      </h2>
+                      <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                        ({categoryDishes.length} {categoryDishes.length === 1 ? 'item' : 'itens'})
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                      {categoryDishes.map(dish => (
+                        <MenuCard 
+                          key={dish.id} 
+                          dish={dish} 
+                          categoryName={cleanCategoryName} 
+                        />
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                    {categoryDishes.map(dish => (
-                      <MenuCard 
-                        key={dish.id} 
-                        dish={dish} 
-                        categoryName={cleanCategoryName} 
-                      />
-                    ))}
-                  </div>
-                </div>
+                  {/* Elegant category divider (not shown on the last item) */}
+                  {index < categories.length - 1 && (
+                    <div className="flex items-center justify-center py-6">
+                      <div className="h-[1px] bg-stone-300/40 flex-1"></div>
+                      <div className="mx-4 h-1.5 w-1.5 rotate-45 bg-brand-red/20"></div>
+                      <div className="h-[1px] bg-stone-300/40 flex-1"></div>
+                    </div>
+                  )}
+                </React.Fragment>
               );
             })}
           </div>

@@ -186,7 +186,8 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
               </span>
             </div>
           )}
-          <h3 className="font-serif text-sm sm:text-lg font-bold text-stone-900 group-hover:text-brand-red transition-colors duration-200 line-clamp-1 leading-snug">
+          {/* Fixed height and line-clamp-2 ensures perfect card symmetry for 1 or 2 line titles */}
+          <h3 className="font-serif text-[13px] sm:text-base font-bold text-stone-900 group-hover:text-brand-red transition-colors duration-200 line-clamp-2 leading-snug h-10 sm:h-12 flex items-center">
             {dish.name}
           </h3>
           <p className="text-[11px] sm:text-xs text-stone-500 mt-1 flex-1 line-clamp-2 sm:line-clamp-2 leading-relaxed">
