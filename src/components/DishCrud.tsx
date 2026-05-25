@@ -229,13 +229,13 @@ export default function DishCrud() {
   });
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm font-sans">
+    <div className="bg-white rounded-3xl p-4 md:p-6 border border-stone-200 shadow-sm font-sans">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="font-serif text-xl font-bold text-stone-900 flex items-center gap-2">
-            <Utensils className="text-brand-red" size={22} />
+          <h2 className="font-serif text-lg md:text-xl font-bold text-stone-900 flex items-center gap-2">
+            <Utensils className="text-brand-red" size={20} />
             Gerenciar Pratos do Cardápio
           </h2>
           <p className="text-stone-500 text-xs mt-0.5">
@@ -245,7 +245,7 @@ export default function DishCrud() {
 
         <button
           onClick={handleOpenAdd}
-          className="py-2.5 px-4 rounded-xl bg-brand-red text-white hover:bg-brand-darkred font-bold text-xs tracking-wider uppercase shadow-md shadow-brand-red/10 flex items-center gap-1.5 cursor-pointer self-start sm:self-auto transition-all"
+          className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-brand-red text-white hover:bg-brand-darkred font-bold text-xs tracking-wider uppercase shadow-md shadow-brand-red/10 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
         >
           <Plus size={16} />
           <span>Novo Prato</span>
@@ -253,15 +253,15 @@ export default function DishCrud() {
       </div>
 
       {/* Filters Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 p-4 bg-stone-50 rounded-2xl border border-stone-150 mb-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-stone-50 rounded-2xl border border-stone-150 mb-6">
         
         {/* Category Filter */}
-        <div className="flex flex-col min-w-[200px]">
-          <label className="text-[10px] font-bold text-stone-500 uppercase mb-1.5">Filtrar por Categoria</label>
+        <div className="flex flex-col flex-1">
+          <label className="text-[10px] font-bold text-stone-500 uppercase mb-1">Filtrar por Categoria</label>
           <select
             value={listCategory}
             onChange={(e) => setListCategory(e.target.value)}
-            className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-stone-250 bg-white outline-none focus:border-brand-red text-stone-800"
+            className="w-full px-3 py-2 text-xs font-semibold rounded-lg border border-stone-250 bg-white outline-none focus:border-brand-red text-stone-800"
           >
             <option value="all">Todas as Categorias</option>
             {categories.map(c => (
@@ -273,7 +273,7 @@ export default function DishCrud() {
         </div>
 
         {/* Count Pill */}
-        <div className="ml-auto text-xs font-bold text-stone-400 self-end mb-1">
+        <div className="text-xs font-bold text-stone-400 self-end">
           Mostrando {filteredDishes.length} de {dishes.length} pratos
         </div>
 
@@ -287,15 +287,15 @@ export default function DishCrud() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-stone-150 rounded-2xl">
-          <table className="w-full text-left text-sm border-collapse">
+          <table className="w-full text-left text-sm border-collapse min-w-[600px] sm:min-w-0">
             <thead>
               <tr className="bg-stone-50 border-b border-stone-150 text-stone-500 font-semibold text-xs uppercase">
-                <th className="p-4 w-16">Foto</th>
-                <th className="p-4">Nome do Prato</th>
-                <th className="p-4">Categoria</th>
-                <th className="p-4 text-right">Preço</th>
-                <th className="p-4 text-center">Status</th>
-                <th className="p-4 text-right">Ações</th>
+                <th className="p-3 w-16">Foto</th>
+                <th className="p-3">Nome do Prato</th>
+                <th className="p-3 hidden md:table-cell">Categoria</th>
+                <th className="p-3 text-right">Preço</th>
+                <th className="p-3 text-center">Status</th>
+                <th className="p-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 font-sans text-stone-700">
@@ -303,7 +303,7 @@ export default function DishCrud() {
                 const category = categories.find(c => c.id === dish.categoryId);
                 return (
                   <tr key={dish.id} className="hover:bg-stone-50/50 transition-colors">
-                    <td className="p-4">
+                    <td className="p-3">
                       <div className="h-10 w-10 rounded-lg bg-stone-100 overflow-hidden border border-stone-200">
                         <img
                           src={dish.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=80&q=80'}
@@ -312,9 +312,9 @@ export default function DishCrud() {
                         />
                       </div>
                     </td>
-                    <td className="p-4 font-semibold text-stone-900">
-                      <div className="flex items-center gap-1.5">
-                        <span>{dish.name}</span>
+                    <td className="p-3 font-semibold text-stone-900">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-sm">{dish.name}</span>
                         {dish.isCustomizable && (
                           <span className="text-[9px] font-bold bg-brand-red/10 text-brand-red px-1.5 py-0.5 rounded uppercase tracking-wider">
                             Personalizável
@@ -325,18 +325,18 @@ export default function DishCrud() {
                         {dish.description}
                       </div>
                     </td>
-                    <td className="p-4">
+                    <td className="p-3 hidden md:table-cell">
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200">
                         {category?.name || 'Sem categoria'}
                       </span>
                     </td>
-                    <td className="p-4 text-right font-bold text-stone-900">
+                    <td className="p-3 text-right font-bold text-stone-900">
                       {formatPrice(dish.price)}
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-3 text-center">
                       <button
                         onClick={() => handleToggleActive(dish)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors ${
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold cursor-pointer transition-colors ${
                           dish.active
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : 'bg-stone-100 text-stone-400 border border-stone-200'
@@ -345,29 +345,29 @@ export default function DishCrud() {
                       >
                         {dish.active ? (
                           <>
-                            <Eye size={12} />
+                            <Eye size={11} />
                             <span>Ativo</span>
                           </>
                         ) : (
                           <>
-                            <EyeOff size={12} />
+                            <EyeOff size={11} />
                             <span>Inativo</span>
                           </>
                         )}
                       </button>
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-3 text-right">
                       <div className="flex gap-1 justify-end">
                         <button
                           onClick={() => handleOpenEdit(dish)}
-                          className="p-2 rounded-lg text-stone-500 hover:text-stone-850 hover:bg-stone-100 cursor-pointer transition-colors"
+                          className="p-1.5 rounded-lg text-stone-500 hover:text-stone-850 hover:bg-stone-100 cursor-pointer transition-colors"
                           title="Editar prato"
                         >
                           <Edit size={14} />
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(dish.id)}
-                          className="p-2 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
+                          className="p-1.5 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
                           title="Excluir prato"
                         >
                           <Trash2 size={14} />
@@ -384,39 +384,42 @@ export default function DishCrud() {
 
       {/* Add / Edit Dish Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-stone-900/60 animate-in fade-in duration-150">
           <form 
             onSubmit={handleSave}
-            className="w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+            className="w-full max-w-2xl bg-white rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]"
           >
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-stone-100 flex justify-between items-center bg-stone-50 shrink-0">
-              <h3 className="font-serif text-lg font-bold text-stone-900">
+            <div className="px-5 py-3 border-b border-stone-100 flex justify-between items-center bg-stone-50 shrink-0">
+              <h3 className="font-serif text-base md:text-lg font-bold text-stone-900">
                 {editingDish ? 'Editar Prato' : 'Cadastrar Novo Prato'}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-full hover:bg-stone-200 text-stone-500 cursor-pointer transition-colors"
+                className="p-1.5 rounded-full hover:bg-stone-250 text-stone-500 cursor-pointer transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Modal Fields - Scrollable */}
-            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+            {/* Modal Fields - Scrollable (Accellerated with -webkit-overflow-scrolling) */}
+            <div 
+              className="p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto flex-1 overscroll-contain select-none"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               
               {/* Category selector & Sub-section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
                     Categoria do Prato
                   </label>
                   <select
                     required
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 bg-white"
                   >
                     {categories.length === 0 ? (
                       <option value="" disabled>Cadastre uma categoria primeiro!</option>
@@ -430,8 +433,8 @@ export default function DishCrud() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
                     Sub-seção / Agrupamento (Opcional)
                   </label>
                   <input
@@ -439,15 +442,15 @@ export default function DishCrud() {
                     value={subSection}
                     onChange={(e) => setSubSection(e.target.value)}
                     placeholder="Ex: Sucos de Polpa, Massas Rústicas"
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800"
                   />
                 </div>
               </div>
 
-              {/* Name, Price & Weight */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+              {/* Name, Price & Weight Grid (Explicit grid sizes & alignment labels) */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                <div className="sm:col-span-2 flex flex-col">
+                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
                     Nome do Prato
                   </label>
                   <input
@@ -456,11 +459,12 @@ export default function DishCrud() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ex: Filé à Parmigiana"
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
                     Preço Base (R$)
                   </label>
                   <input
@@ -469,26 +473,27 @@ export default function DishCrud() {
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 font-bold"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 font-bold"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                    Tamanho / Peso (Opcional)
+                
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5 truncate" title="Tamanho / Peso (Opcional)">
+                    Tamanho / Peso
                   </label>
                   <input
                     type="text"
                     value={sizeOrWeight}
                     onChange={(e) => setSizeOrWeight(e.target.value)}
-                    placeholder="Ex: 350ml, 180g"
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850"
+                    placeholder="Opcional: Ex: 350ml, 180g"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800"
                   />
                 </div>
               </div>
 
               {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1.5">
                   Descrição / Ingredientes
                 </label>
                 <textarea
@@ -496,99 +501,99 @@ export default function DishCrud() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ex: Filé empanado, coberto com molho de tomate rústico e muçarela gratinada."
                   rows={2}
-                  className="w-full p-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-850 resize-none placeholder-stone-400 bg-white"
+                  className="w-full p-2.5 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 resize-none bg-white"
                 />
               </div>
 
               {/* Toggle Customizations Mode */}
-              <div className="p-4 bg-brand-red/5 rounded-2xl border border-brand-red/10 flex items-center justify-between">
+              <div className="p-3.5 bg-brand-red/5 rounded-xl border border-brand-red/10 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
-                  <Sliders className="text-brand-red" size={20} />
+                  <Sliders className="text-brand-red shrink-0" size={18} />
                   <div>
-                    <span className="text-xs font-bold text-stone-900 block uppercase">Prato Personalizável (Monte seu Pedido)</span>
-                    <span className="text-[10px] text-stone-500 block">Permitir que o cliente escolha guarnições, pontos da carne, etc.</span>
+                    <span className="text-[11px] font-bold text-stone-900 block uppercase">Prato Personalizável (Acompanhamentos)</span>
+                    <span className="text-[9px] text-stone-500 block leading-tight">Escolha de guarnições, ponto da carne, etc.</span>
                   </div>
                 </div>
 
-                <label className="relative inline-flex items-center cursor-pointer select-none">
+                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
                   <input
                     type="checkbox"
                     checked={isCustomizable}
                     onChange={(e) => setIsCustomizable(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-red"></div>
+                  <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-red"></div>
                 </label>
               </div>
 
               {/* Customization Options Constructor */}
               {isCustomizable && (
-                <div className="space-y-4 p-4 bg-stone-50 rounded-2xl border border-stone-200">
-                  <div className="flex justify-between items-center border-b border-stone-200/80 pb-2">
-                    <span className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-brand-red" />
-                      Estrutura de Opcionais / Acompanhamentos
+                <div className="space-y-4 p-3 md:p-4 bg-stone-50 rounded-xl md:rounded-2xl border border-stone-200">
+                  <div className="flex justify-between items-center border-b border-stone-200 pb-2 gap-2">
+                    <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1">
+                      <Sparkles size={12} className="text-brand-red" />
+                      Estrutura de Opcionais
                     </span>
                     <button
                       type="button"
                       onClick={handleAddGroup}
-                      className="py-1 px-3 bg-brand-red text-white hover:bg-brand-darkred rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
+                      className="py-1 px-2.5 bg-brand-red text-white hover:bg-brand-darkred rounded-lg font-bold text-[9px] uppercase tracking-wider flex items-center gap-0.5 cursor-pointer transition-colors"
                     >
-                      <Plus size={12} />
-                      Adicionar Grupo
+                      <Plus size={10} />
+                      Grupo
                     </button>
                   </div>
 
                   {customizationOptions.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-4 italic">Nenhum grupo de opcionais criado ainda. Clique acima para adicionar.</p>
+                    <p className="text-[11px] text-stone-450 text-center py-4 italic">Nenhum grupo criado ainda. Clique no botão ao lado para adicionar.</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {customizationOptions.map((group) => (
-                        <div key={group.id} className="p-4 bg-white rounded-xl border border-stone-200 shadow-sm relative space-y-3">
+                        <div key={group.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-sm relative space-y-3">
                           
                           {/* Remove Group Button */}
                           <button
                             type="button"
                             onClick={() => handleRemoveGroup(group.id)}
-                            className="absolute top-3 right-3 p-1 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
+                            className="absolute top-2.5 right-2.5 p-1 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
                           >
                             <X size={14} />
                           </button>
 
                           {/* Group Title and Rules */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                            <div className="md:col-span-2">
-                              <label className="text-[9px] font-bold text-stone-500 uppercase">Título do Grupo</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                            <div className="sm:col-span-2 flex flex-col">
+                              <label className="text-[9px] font-bold text-stone-550 uppercase">Título do Grupo</label>
                               <input
                                 type="text"
                                 required
                                 value={group.title}
                                 onChange={(e) => handleGroupTitleChange(group.id, e.target.value)}
                                 placeholder="Ex: Escolha até 3 acompanhamentos"
-                                className="w-full px-3 py-2 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
+                                className="w-full px-2.5 py-1.5 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-bold"
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className="text-[9px] font-bold text-stone-500 uppercase">Min. escolhas</label>
+                              <div className="flex flex-col">
+                                <label className="text-[9px] font-bold text-stone-550 uppercase">Mínimo</label>
                                 <input
                                   type="number"
                                   min={0}
                                   required
                                   value={group.min}
                                   onChange={(e) => handleGroupRuleChange(group.id, 'min', Number(e.target.value))}
-                                  className="w-full px-3 py-2 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-mono font-bold"
+                                  className="w-full px-2.5 py-1.5 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-mono"
                                 />
                               </div>
-                              <div>
-                                <label className="text-[9px] font-bold text-stone-500 uppercase">Máx. escolhas</label>
+                              <div className="flex flex-col">
+                                <label className="text-[9px] font-bold text-stone-550 uppercase">Máximo</label>
                                 <input
                                   type="number"
                                   min={1}
                                   required
                                   value={group.max}
                                   onChange={(e) => handleGroupRuleChange(group.id, 'max', Number(e.target.value))}
-                                  className="w-full px-3 py-2 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-mono font-bold"
+                                  className="w-full px-2.5 py-1.5 mt-1 rounded-lg border border-stone-200 focus:border-brand-red outline-none text-xs text-stone-800 font-mono"
                                 />
                               </div>
                             </div>
@@ -609,7 +614,7 @@ export default function DishCrud() {
                             </div>
 
                             {group.items.length === 0 ? (
-                              <p className="text-[11px] text-stone-400 italic py-1 pl-1">Cadastre pelo menos uma opção para este grupo.</p>
+                              <p className="text-[11px] text-stone-400 italic py-1">Sem opções. Clique em adicionar acima.</p>
                             ) : (
                               <div className="space-y-2">
                                 {group.items.map((item, itemIdx) => (
@@ -619,12 +624,12 @@ export default function DishCrud() {
                                       required
                                       value={item.name}
                                       onChange={(e) => handleItemPropertyChange(group.id, itemIdx, 'name', e.target.value)}
-                                      placeholder="Ex: Purê de Batata"
-                                      className="flex-1 px-3 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-750 outline-none focus:border-brand-red font-semibold"
+                                      placeholder="Ex: Arroz ou Purê"
+                                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-800 outline-none focus:border-brand-red"
                                     />
                                     
-                                    <div className="w-28 relative">
-                                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-stone-400 font-mono">
+                                    <div className="w-24 relative shrink-0">
+                                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-stone-400 font-mono">
                                         + R$
                                       </span>
                                       <input
@@ -632,14 +637,14 @@ export default function DishCrud() {
                                         placeholder="Preço"
                                         value={item.price !== undefined ? item.price : ''}
                                         onChange={(e) => handleItemPropertyChange(group.id, itemIdx, 'price', e.target.value)}
-                                        className="w-full pl-10 pr-2 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-800 font-bold outline-none focus:border-brand-red"
+                                        className="w-full pl-8 pr-2 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-800 font-bold outline-none focus:border-brand-red font-mono"
                                       />
                                     </div>
 
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveItemFromGroup(group.id, itemIdx)}
-                                      className="p-1.5 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
+                                      className="p-1.5 rounded-lg text-stone-400 hover:text-red-650 hover:bg-red-50 cursor-pointer"
                                     >
                                       <X size={14} />
                                     </button>
@@ -657,22 +662,22 @@ export default function DishCrud() {
               )}
 
               {/* Image Upload */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-2">
                   Foto do Prato
                 </label>
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                  <div className="h-20 w-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center relative shrink-0">
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                  <div className="h-16 w-16 md:h-20 md:w-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center relative shrink-0 mx-auto sm:mx-0 shadow-inner">
                     {isUploading ? (
-                      <Loader2 className="animate-spin text-brand-red" size={24} />
+                      <Loader2 className="animate-spin text-brand-red" size={20} />
                     ) : imageUrl ? (
                       <img src={imageUrl} alt="Upload Preview" className="h-full w-full object-cover" />
                     ) : (
-                      <Utensils size={24} className="text-stone-300" />
+                      <Utensils size={20} className="text-stone-300" />
                     )}
                   </div>
 
-                  <div className="flex-1 w-full space-y-2.5">
+                  <div className="flex-1 w-full space-y-2">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -684,39 +689,39 @@ export default function DishCrud() {
                       type="button"
                       disabled={isUploading}
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full sm:w-auto py-2 px-4 rounded-xl border border-stone-250 hover:bg-stone-50 text-stone-600 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors"
+                      className="w-full sm:w-auto py-2 px-3.5 rounded-xl border border-stone-250 hover:bg-stone-50 text-stone-600 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                     >
-                      <Upload size={14} />
-                      {isUploading ? 'Otimizando Imagem...' : 'Carregar Imagem'}
+                      <Upload size={12} />
+                      {isUploading ? 'Compactando...' : 'Carregar Imagem'}
                     </button>
                     
                     <input
                       type="text"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="Ou cole uma URL direta da imagem"
-                      className="w-full px-3 py-2 rounded-lg border border-stone-200 outline-none text-xs text-stone-600"
+                      placeholder="Ou digite o link da internet"
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-200 outline-none text-xs text-stone-600"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Sort Order & Status */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                    Ordem de Exibição no Menu
+              <div className="grid grid-cols-2 gap-4 pt-1 items-end">
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider h-4 flex items-center mb-1.5">
+                    Ordem de Exibição
                   </label>
                   <input
                     type="number"
                     required
                     value={sortOrder}
                     onChange={(e) => setSortOrder(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-800 font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-xs md:text-sm text-stone-800 font-mono"
                   />
                 </div>
                 
-                <div className="flex flex-col justify-end pb-1.5">
+                <div className="flex items-center pb-2.5">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -724,8 +729,8 @@ export default function DishCrud() {
                       onChange={(e) => setActive(e.target.checked)}
                       className="h-4 w-4 rounded text-brand-red border-stone-300 focus:ring-brand-red accent-brand-red cursor-pointer"
                     />
-                    <span className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                      Prato Ativo (Disponível)
+                    <span className="text-[10px] md:text-xs font-bold text-stone-700 uppercase tracking-wider">
+                      Prato Ativo
                     </span>
                   </label>
                 </div>
@@ -734,21 +739,21 @@ export default function DishCrud() {
             </div>
 
             {/* Modal Actions */}
-            <div className="px-6 py-4 bg-stone-50 border-t border-stone-100 flex gap-3 justify-end shrink-0">
+            <div className="px-5 py-3.5 bg-stone-50 border-t border-stone-100 flex gap-2 justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="py-2.5 px-4 rounded-xl text-stone-600 hover:bg-stone-100 font-semibold text-xs tracking-wider uppercase cursor-pointer transition-colors"
+                className="py-2 px-3.5 rounded-lg text-stone-600 hover:bg-stone-100 font-semibold text-xs tracking-wider uppercase cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isUploading}
-                className="py-2.5 px-5 rounded-xl bg-brand-red hover:bg-brand-darkred text-white font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 shadow-md shadow-brand-red/10 cursor-pointer disabled:opacity-50 transition-colors"
+                className="py-2 px-4.5 rounded-lg bg-brand-red hover:bg-brand-darkred text-white font-bold text-xs tracking-wider uppercase flex items-center gap-1 shadow-md shadow-brand-red/10 cursor-pointer disabled:opacity-50 transition-colors"
               >
-                <Save size={14} />
-                <span>Salvar Prato</span>
+                <Save size={13} />
+                <span>Salvar</span>
               </button>
             </div>
           </form>
@@ -757,10 +762,10 @@ export default function DishCrud() {
 
       {/* Confirmation Delete Dialog */}
       {confirmDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 mb-4">
-              <AlertCircle size={24} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-100 text-red-600 mb-4">
+              <AlertCircle size={22} />
             </div>
             
             <h3 className="font-serif text-lg font-bold text-stone-900 mb-2">Excluir Prato?</h3>
@@ -771,13 +776,13 @@ export default function DishCrud() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="py-2.5 px-4 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 font-semibold text-xs tracking-wider uppercase cursor-pointer transition-colors"
+                className="py-2 px-3.5 rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-600 font-semibold text-xs tracking-wider uppercase cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDelete(confirmDeleteId)}
-                className="py-2.5 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer transition-colors"
+                className="py-2 px-4.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer transition-colors"
               >
                 Excluir
               </button>
