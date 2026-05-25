@@ -234,7 +234,7 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
         image_url: dish.image,
         active: dish.active,
         section: dish.section,
-        sort_order: dish.sort_order
+        sort_order: dish.sortOrder
       };
 
       if (dish.id) {
