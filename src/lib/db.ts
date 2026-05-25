@@ -193,7 +193,13 @@ export async function getDishes(): Promise<Dish[]> {
         image: item.image_url || '',
         active: item.active,
         section: item.section,
-        sortOrder: item.sort_order
+        sortOrder: item.sort_order,
+        isCustomizable: item.is_customizable,
+        customizationOptions: typeof item.customization_options === 'string' 
+          ? JSON.parse(item.customization_options) 
+          : item.customization_options || [],
+        subSection: item.sub_section,
+        sizeOrWeight: item.size_or_weight
       }));
     } catch (e) {
       console.warn('Failed to fetch dishes from Supabase, falling back to local storage', e);
@@ -221,7 +227,11 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
     image: dish.image,
     active: dish.active,
     section: dish.section,
-    sortOrder: dish.sortOrder ?? 0
+    sortOrder: dish.sortOrder ?? 0,
+    isCustomizable: dish.isCustomizable,
+    customizationOptions: dish.customizationOptions,
+    subSection: dish.subSection,
+    sizeOrWeight: dish.sizeOrWeight
   };
 
   if (isSupabaseConfigured && supabase) {
@@ -234,7 +244,11 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
         image_url: dish.image,
         active: dish.active,
         section: dish.section,
-        sort_order: dish.sortOrder
+        sort_order: dish.sortOrder,
+        is_customizable: dish.isCustomizable || false,
+        customization_options: dish.customizationOptions || [],
+        sub_section: dish.subSection || null,
+        size_or_weight: dish.sizeOrWeight || null
       };
 
       if (dish.id) {
