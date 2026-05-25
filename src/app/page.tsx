@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import Navbar from '../components/Navbar';
 import CategoryNav from '../components/CategoryNav';
 import MenuCard from '../components/MenuCard';
-import { Search, Loader2, Award, MapPin } from 'lucide-react';
+import { Search, Loader2, MapPin, Sparkles } from 'lucide-react';
 
 // Helper function to remove emojis from string
 const stripEmojis = (str: string) => {
@@ -41,6 +41,24 @@ export default function Home() {
 
     return true;
   });
+
+  // Helper to group dishes by sub-section
+  const groupDishesBySubSection = (items: typeof filteredDishes) => {
+    const groups: Record<string, typeof filteredDishes> = {};
+    const unassigned: typeof filteredDishes = [];
+
+    items.forEach(item => {
+      if (item.subSection && item.subSection.trim()) {
+        const sub = item.subSection.trim();
+        if (!groups[sub]) groups[sub] = [];
+        groups[sub].push(item);
+      } else {
+        unassigned.push(item);
+      }
+    });
+
+    return { groups, unassigned };
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -123,27 +141,59 @@ export default function Home() {
             )}
           </div>
         ) : selectedCategory ? (
-          // Individual category display
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 animate-in fade-in duration-300">
-            {filteredDishes.map(dish => {
-              const category = categories.find(c => c.id === dish.categoryId);
+          // Individual category display (fully grouped by subsections)
+          <div className="space-y-8 animate-in fade-in duration-300">
+            {(() => {
+              const { groups, unassigned } = groupDishesBySubSection(filteredDishes);
+              const category = categories.find(c => c.id === selectedCategory);
+              const cleanCategoryName = category ? stripEmojis(category.name) : 'Pratos';
+
               return (
-                <MenuCard 
-                  key={dish.id} 
-                  dish={dish} 
-                  categoryName={category ? stripEmojis(category.name) : undefined} 
-                />
+                <div className="space-y-6">
+                  {/* Unassigned items at top */}
+                  {unassigned.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                      {unassigned.map(dish => (
+                        <MenuCard 
+                          key={dish.id} 
+                          dish={dish} 
+                          categoryName={cleanCategoryName} 
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Grouped sections */}
+                  {Object.entries(groups).map(([subName, subItems]) => (
+                    <div key={subName} className="space-y-4 pt-2">
+                      <h3 className="font-serif italic text-sm md:text-base font-bold text-brand-darkred flex items-center gap-1.5 pl-1">
+                        <Sparkles size={14} className="text-brand-red" />
+                        {subName}
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                        {subItems.map(dish => (
+                          <MenuCard 
+                            key={dish.id} 
+                            dish={dish} 
+                            categoryName={cleanCategoryName} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               );
-            })}
+            })()}
           </div>
         ) : (
-          // Organized display: render section-by-section with beautiful dividers between them
+          // Organized display: render category-by-category with sub-sections inside
           <div className="space-y-12 animate-in fade-in duration-300">
             {categories.map((category, index) => {
               const categoryDishes = filteredDishes.filter(d => d.categoryId === category.id);
               if (categoryDishes.length === 0) return null;
 
               const cleanCategoryName = stripEmojis(category.name);
+              const { groups, unassigned } = groupDishesBySubSection(categoryDishes);
 
               return (
                 <React.Fragment key={category.id}>
@@ -158,15 +208,37 @@ export default function Home() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                      {categoryDishes.map(dish => (
-                        <MenuCard 
-                          key={dish.id} 
-                          dish={dish} 
-                          categoryName={cleanCategoryName} 
-                        />
-                      ))}
-                    </div>
+                    {/* Unassigned Category Dishes */}
+                    {unassigned.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                        {unassigned.map(dish => (
+                          <MenuCard 
+                            key={dish.id} 
+                            dish={dish} 
+                            categoryName={cleanCategoryName} 
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Grouped Dishes inside this category */}
+                    {Object.entries(groups).map(([subName, subItems]) => (
+                      <div key={subName} className="space-y-4 pt-2">
+                        <h3 className="font-serif italic text-xs sm:text-sm font-bold text-brand-darkred flex items-center gap-1.5 pl-1.5">
+                          <Sparkles size={12} className="text-brand-red" />
+                          {subName}
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                          {subItems.map(dish => (
+                            <MenuCard 
+                              key={dish.id} 
+                              dish={dish} 
+                              categoryName={cleanCategoryName} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Elegant category divider (not shown on the last item) */}
