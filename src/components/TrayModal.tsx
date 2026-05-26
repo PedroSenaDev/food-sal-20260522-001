@@ -163,10 +163,16 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
       `_Enviado pelo Cardápio Digital FoodSal_`;
 
     const encodedMessage = encodeURIComponent(message);
-    // Envia dinamicamente direto para o número do gerente cadastrado
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${settings.whatsappNumber}&text=${encodedMessage}`;
     
-    window.open(whatsappUrl, '_blank');
+    // Sanitização rigorosa do número de telefone (remove espaços, hífens, parênteses e +)
+    const sanitizedPhone = settings.whatsappNumber.replace(/\D/g, '');
+
+    // Link unificado do WhatsApp (funciona perfeitamente em Web, Desktop e Aplicativo Mobile)
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMessage}`;
+    
+    // REDIRECIONAMENTO DIRETO na própria janela para evitar bloqueio de pop-up pelo navegador!
+    window.location.href = whatsappUrl;
+
     clearCart();
     onClose();
   };
