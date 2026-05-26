@@ -30,7 +30,7 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
           
           <div className="flex flex-col relative z-10 select-none">
             <span className="font-serif text-2xl font-extrabold tracking-tight text-[#F5E6D3]">
-              Food<span className="text-brand-red font-serif font-semibold italic [text-shadow:-0.5px_-0.5px_0_#F5E6D3,0.5px_-0.5px_0_#F5E6D3,-0.5px_0.5px_0_#F5E6D3,0.5px_0.5px_0_#F5E6D3]">Sal</span>
+              Food<span className="text-brand-red font-serif font-extrabold [text-shadow:-0.5px_-0.5px_0_#F5E6D3,0.5px_-0.5px_0_#F5E6D3,-0.5px_0.5px_0_#F5E6D3,0.5px_0.5px_0_#F5E6D3]">Sal</span>
             </span>
             <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#F5E6D3]/80 mt-1">
               Sobre nós
