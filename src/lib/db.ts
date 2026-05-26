@@ -8,18 +8,15 @@ import {
   INITIAL_SETTINGS 
 } from './mockData';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Forçamos o fallback com as credenciais reais do seu Supabase para garantir conexão 100% funcional em qualquer ambiente
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ovwbrqltrlycbpyylqoq.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92d2JycWx0cmx5Y2JweXlscW9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjQ1NjksImV4cCI6MjA5NTMwMDU2OX0.IqqRwKC2vwfoQXTXwxdeor5Z-EkldUnIUlaosSynkJE';
 
 export const isSupabaseConfigured = !!(
   supabaseUrl && 
   supabaseUrl.startsWith('https://') && 
-  !supabaseUrl.includes('your_') && 
-  !supabaseUrl.includes('placeholder') &&
   supabaseAnonKey && 
-  supabaseAnonKey.length > 30 &&
-  !supabaseAnonKey.includes('your_') && 
-  !supabaseAnonKey.includes('placeholder')
+  supabaseAnonKey.length > 30
 );
 
 export const supabase = isSupabaseConfigured
@@ -52,13 +49,12 @@ export interface Order {
   createdAt: string;
 }
 
-// Inicializa o banco do Supabase com os itens iniciais se ele estiver ativo mas totalmente vazio
+// Semeia o Supabase se estiver vazio
 export async function seedSupabaseDatabase() {
   if (!supabase) return;
   try {
     console.log("Iniciando semeadura automática do Supabase...");
     
-    // 1. Cadastra as categorias iniciais
     const catPayloads = INITIAL_CATEGORIES.map(cat => ({
       id: cat.id,
       name: cat.name,
@@ -68,7 +64,6 @@ export async function seedSupabaseDatabase() {
     const { error: catErr } = await supabase.from('categories').insert(catPayloads);
     if (catErr) throw catErr;
 
-    // 2. Cadastra os pratos iniciais
     const dishPayloads = INITIAL_DISHES.map(dish => ({
       id: dish.id,
       category_id: dish.categoryId,
@@ -87,7 +82,6 @@ export async function seedSupabaseDatabase() {
     const { error: dishErr } = await supabase.from('dishes').insert(dishPayloads);
     if (dishErr) throw dishErr;
 
-    // 3. Cadastra as configurações iniciais
     const settingsPayloads = Object.entries(INITIAL_SETTINGS).map(([key, value]) => ({
       key,
       value
@@ -95,72 +89,19 @@ export async function seedSupabaseDatabase() {
     const { error: setErr } = await supabase.from('settings').upsert(settingsPayloads);
     if (setErr) throw setErr;
 
-    console.log("Supabase semeado com sucesso! Agora o banco online está pronto.");
+    console.log("Supabase semeado com sucesso!");
   } catch (err: any) {
-    console.error("Erro ao semear dados no Supabase. Verifique se as tabelas existem.", err);
+    console.error("Erro ao semear dados no Supabase:", err);
   }
 }
 
-// Testa o estado atual de conexão do Supabase para ajudar no diagnóstico do usuário
-export async function testSupabaseConnection(): Promise<{ 
-  connected: boolean; 
-  error?: string; 
-  tablesExist?: { categories: boolean; dishes: boolean; settings: boolean; orders: boolean };
-  rlsWriteAllowed?: boolean;
-}> {
-  if (!isSupabaseConfigured || !supabase) {
-    return { connected: false, error: 'As chaves do Supabase não estão configuradas ou são inválidas.' };
-  }
-
-  const status = {
-    connected: true,
-    tablesExist: { categories: false, dishes: false, settings: false, orders: false },
-    rlsWriteAllowed: false
-  };
-
+export async function testSupabaseConnection() {
+  if (!supabase) return { connected: false, error: 'Supabase não inicializado.' };
   try {
-    const catCheck = await supabase.from('categories').select('id').limit(1);
-    status.tablesExist.categories = !catCheck.error;
-
-    const dishCheck = await supabase.from('dishes').select('id').limit(1);
-    status.tablesExist.dishes = !dishCheck.error;
-
-    const settingsCheck = await supabase.from('settings').select('key').limit(1);
-    status.tablesExist.settings = !settingsCheck.error;
-
-    const ordersCheck = await supabase.from('orders').select('id').limit(1);
-    status.tablesExist.orders = !ordersCheck.error;
-
-    if (catCheck.error || dishCheck.error || settingsCheck.error || ordersCheck.error) {
-      const firstError = catCheck.error || dishCheck.error || settingsCheck.error || ordersCheck.error;
-      return { 
-        ...status, 
-        connected: false, 
-        error: `Tabelas ausentes ou sem permissão de leitura. Erro: ${firstError?.message}` 
-      };
-    }
-
-    const testCatId = `test-connection-${Date.now()}`;
-    const writeCheck = await supabase.from('categories').insert([{ 
-      id: testCatId, 
-      name: 'Teste Conexão', 
-      section: 'adult', 
-      sort_order: 9999 
-    }]);
-
-    if (!writeCheck.error) {
-      status.rlsWriteAllowed = true;
-      await supabase.from('categories').delete().eq('id', testCatId);
-    } else {
-      return {
-        ...status,
-        error: `Leitura funcionando, mas Escrita negada por RLS. Erro: ${writeCheck.error.message}`
-      };
-    }
-
-    return status;
+    const { error } = await supabase.from('categories').select('id').limit(1);
+    return { connected: !error, error: error?.message };
   } catch (err: any) {
-    return { connected: false, error: err.message || 'Erro de rede desconhecido ao tentar acessar o Supabase.' };
+    return { connected: false, error: err.message };
   }
 }
 
@@ -181,17 +122,8 @@ export function initializeLocalStorage() {
   }
 }
 
-export function resetLocalDatabase() {
-  if (!isBrowser) return;
-  localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(INITIAL_CATEGORIES));
-  localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(INITIAL_DISHES));
-  localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(INITIAL_SETTINGS));
-  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify([]));
-  window.location.reload();
-}
-
 export async function getCategories(): Promise<Category[]> {
-  if (isSupabaseConfigured && supabase) {
+  if (supabase) {
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -201,8 +133,6 @@ export async function getCategories(): Promise<Category[]> {
       if (error) throw error;
       
       if (data) {
-        // CORREÇÃO: Só semeia o banco se as configurações também estiverem totalmente vazias (banco virgem)
-        // Evita recriar itens apagados pelo usuário se ele propositalmente esvaziou o cardápio
         if (data.length === 0) {
           const { data: setCheck } = await supabase.from('settings').select('key');
           if (!setCheck || setCheck.length === 0) {
@@ -234,10 +164,7 @@ export async function getCategories(): Promise<Category[]> {
     }
   }
 
-  if (!isBrowser) {
-    return INITIAL_CATEGORIES;
-  }
-
+  if (!isBrowser) return INITIAL_CATEGORIES;
   initializeLocalStorage();
   const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
   return data ? JSON.parse(data) : INITIAL_CATEGORIES;
@@ -252,39 +179,34 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
     sortOrder: category.sortOrder ?? 0
   };
 
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const payload = {
-        id: newId,
-        name: category.name,
-        section: category.section,
-        sort_order: category.sortOrder
-      };
+  if (supabase) {
+    const payload = {
+      id: newId,
+      name: category.name,
+      section: category.section,
+      sort_order: category.sortOrder
+    };
 
-      if (category.id) {
-        const { error } = await supabase
-          .from('categories')
-          .update({
-            name: category.name,
-            section: category.section,
-            sort_order: category.sortOrder
-          })
-          .eq('id', category.id);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('categories')
-          .insert([payload]);
-        
-        if (error) throw error;
-      }
-    } catch (err: any) {
-      console.error("Falha ao salvar categoria no Supabase. Sincronizando apenas offline:", err);
+    if (category.id) {
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: category.name,
+          section: category.section,
+          sort_order: category.sortOrder
+        })
+        .eq('id', category.id);
+      
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('categories')
+        .insert([payload]);
+      
+      if (error) throw error;
     }
   }
 
-  // Atualiza LocalStorage diretamente e de forma síncrona
   if (isBrowser) {
     initializeLocalStorage();
     const localData = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
@@ -303,40 +225,41 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    } catch (err: any) {
-      console.error("Falha ao excluir categoria no Supabase. Sincronizando apenas offline:", err);
-    }
+  if (supabase) {
+    // 1. Deletamos primeiro todos os pratos vinculados a essa categoria de forma explícita para evitar violação de integridade/chave estrangeira
+    const { error: dishesErr } = await supabase
+      .from('dishes')
+      .delete()
+      .eq('category_id', id);
+    
+    if (dishesErr) throw dishesErr;
+
+    // 2. Agora deletamos a categoria com segurança
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 
-  if (!isBrowser) return false;
+  if (isBrowser) {
+    initializeLocalStorage();
+    
+    const localCats = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+    const categories: Category[] = localCats ? JSON.parse(localCats) : [];
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories.filter(c => c.id !== id)));
 
-  initializeLocalStorage();
-  
-  // Atualiza categorias locais
-  const localCats = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-  const categories: Category[] = localCats ? JSON.parse(localCats) : [];
-  const filteredCats = categories.filter(c => c.id !== id);
-  localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(filteredCats));
-
-  // Limpa pratos órfãos localmente
-  const localDishes = localStorage.getItem(STORAGE_KEYS.DISHES);
-  const dishes: Dish[] = localDishes ? JSON.parse(localDishes) : [];
-  const filteredDishes = dishes.filter(d => d.categoryId !== id);
-  localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(filteredDishes));
+    const localDishes = localStorage.getItem(STORAGE_KEYS.DISHES);
+    const dishes: Dish[] = localDishes ? JSON.parse(localDishes) : [];
+    localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(dishes.filter(d => d.categoryId !== id)));
+  }
 
   return true;
 }
 
 export async function getDishes(): Promise<Dish[]> {
-  if (isSupabaseConfigured && supabase) {
+  if (supabase) {
     try {
       const { data, error } = await supabase
         .from('dishes')
@@ -369,10 +292,7 @@ export async function getDishes(): Promise<Dish[]> {
     }
   }
 
-  if (!isBrowser) {
-    return INITIAL_DISHES;
-  }
-
+  if (!isBrowser) return INITIAL_DISHES;
   initializeLocalStorage();
   const data = localStorage.getItem(STORAGE_KEYS.DISHES);
   return data ? JSON.parse(data) : INITIAL_DISHES;
@@ -396,57 +316,39 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
     sizeOrWeight: dish.sizeOrWeight
   };
 
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const payload = {
-        id: newId,
-        category_id: dish.categoryId,
-        name: dish.name,
-        description: dish.description,
-        price: dish.price,
-        image_url: dish.image,
-        active: dish.active,
-        section: dish.section,
-        sort_order: dish.sortOrder,
-        is_customizable: dish.isCustomizable || false,
-        customization_options: dish.customizationOptions || [],
-        sub_section: dish.subSection || null,
-        size_or_weight: dish.sizeOrWeight || null
-      };
+  if (supabase) {
+    const payload = {
+      id: newId,
+      category_id: dish.categoryId,
+      name: dish.name,
+      description: dish.description,
+      price: dish.price,
+      image_url: dish.image,
+      active: dish.active,
+      section: dish.section,
+      sort_order: dish.sortOrder,
+      is_customizable: dish.isCustomizable || false,
+      customization_options: dish.customizationOptions || [],
+      sub_section: dish.subSection || null,
+      size_or_weight: dish.sizeOrWeight || null
+    };
 
-      if (dish.id) {
-        const { error } = await supabase
-          .from('dishes')
-          .update({
-            category_id: dish.categoryId,
-            name: dish.name,
-            description: dish.description,
-            price: dish.price,
-            image_url: dish.image,
-            active: dish.active,
-            section: dish.section,
-            sort_order: dish.sortOrder,
-            is_customizable: dish.isCustomizable || false,
-            customization_options: dish.customizationOptions || [],
-            sub_section: dish.subSection || null,
-            size_or_weight: dish.sizeOrWeight || null
-          })
-          .eq('id', dish.id);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('dishes')
-          .insert([payload]);
-        
-        if (error) throw error;
-      }
-    } catch (err: any) {
-      console.error("Falha ao salvar prato no Supabase. Sincronizando apenas offline:", err);
+    if (dish.id) {
+      const { error } = await supabase
+        .from('dishes')
+        .update(payload)
+        .eq('id', dish.id);
+      
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('dishes')
+        .insert([payload]);
+      
+      if (error) throw error;
     }
   }
 
-  // Sincroniza localmente com segurança absoluta
   if (isBrowser) {
     initializeLocalStorage();
     const localData = localStorage.getItem(STORAGE_KEYS.DISHES);
@@ -458,7 +360,6 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
     } else {
       dishes.push(fullDish);
     }
-
     localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(dishes));
   }
 
@@ -466,31 +367,26 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
 }
 
 export async function deleteDish(id: string): Promise<boolean> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { error } = await supabase
-        .from('dishes')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    } catch (err: any) {
-      console.error("Falha ao excluir prato no Supabase. Sincronizando apenas offline:", err);
-    }
+  if (supabase) {
+    const { error } = await supabase
+      .from('dishes')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 
-  if (!isBrowser) return false;
-
-  initializeLocalStorage();
-  const localData = localStorage.getItem(STORAGE_KEYS.DISHES);
-  const dishes: Dish[] = localData ? JSON.parse(localData) : [];
-  const filtered = dishes.filter(d => d.id !== id);
-  localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(filtered));
+  if (isBrowser) {
+    initializeLocalStorage();
+    const localData = localStorage.getItem(STORAGE_KEYS.DISHES);
+    const dishes: Dish[] = localData ? JSON.parse(localData) : [];
+    localStorage.setItem(STORAGE_KEYS.DISHES, JSON.stringify(dishes.filter(d => d.id !== id)));
+  }
   return true;
 }
 
 export async function getOrders(): Promise<Order[]> {
-  if (isSupabaseConfigured && supabase) {
+  if (supabase) {
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -514,7 +410,6 @@ export async function getOrders(): Promise<Order[]> {
   }
 
   if (!isBrowser) return [];
-
   initializeLocalStorage();
   const data = localStorage.getItem(STORAGE_KEYS.ORDERS);
   return data ? JSON.parse(data) : [];
@@ -531,22 +426,18 @@ export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise
     createdAt
   };
 
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .insert([{
-          id: newId,
-          table_number: order.tableNumber,
-          items: JSON.stringify(order.items),
-          total: order.total,
-          created_at: createdAt
-        }]);
-      
-      if (error) throw error;
-    } catch (err: any) {
-      console.error("Falha ao registrar pedido no Supabase. Sincronizando apenas offline:", err);
-    }
+  if (supabase) {
+    const { error } = await supabase
+      .from('orders')
+      .insert([{
+        id: newId,
+        table_number: order.tableNumber,
+        items: JSON.stringify(order.items),
+        total: order.total,
+        created_at: createdAt
+      }]);
+    
+    if (error) throw error;
   }
 
   if (isBrowser) {
@@ -561,7 +452,7 @@ export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise
 }
 
 export async function getSettings(): Promise<SystemSettings> {
-  if (isSupabaseConfigured && supabase) {
+  if (supabase) {
     try {
       const { data, error } = await supabase
         .from('settings')
@@ -583,28 +474,21 @@ export async function getSettings(): Promise<SystemSettings> {
     }
   }
 
-  if (!isBrowser) {
-    return INITIAL_SETTINGS;
-  }
-
+  if (!isBrowser) return INITIAL_SETTINGS;
   initializeLocalStorage();
   const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
   return data ? JSON.parse(data) : INITIAL_SETTINGS;
 }
 
 export async function saveSettings(settings: SystemSettings): Promise<SystemSettings> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const promises = Object.entries(settings).map(async ([key, value]) => {
-        const { error } = await supabase
-          .from('settings')
-          .upsert({ key, value });
-        if (error) throw error;
-      });
-      await Promise.all(promises);
-    } catch (error: any) {
-      console.error("Erro ao salvar configurações no Supabase. Sincronizando apenas offline:", error);
-    }
+  if (supabase) {
+    const promises = Object.entries(settings).map(async ([key, value]) => {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key, value });
+      if (error) throw error;
+    });
+    await Promise.all(promises);
   }
 
   if (isBrowser) {

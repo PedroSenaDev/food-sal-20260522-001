@@ -23,7 +23,7 @@ export interface SelectedCustomization {
 }
 
 export interface CartItem {
-  id: string; // Dynamic unique ID for cart items to allow adding same dish with different options
+  id: string; 
   dish: Dish;
   quantity: number;
   notes?: string;
@@ -101,7 +101,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
 
-  // Load initial data
   const refreshData = async () => {
     setIsLoading(true);
     try {
@@ -126,7 +125,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshData();
     
-    // Check URL parameters for table number
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const table = params.get('mesa') || params.get('table');
@@ -134,18 +132,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTableNumber(table);
       }
 
-      // Check admin login
       const loggedIn = localStorage.getItem('foodsal_logged_in') === 'true';
       setIsAdminLoggedIn(loggedIn);
     }
   }, []);
 
-  // Reset selected category when switching sections
   useEffect(() => {
     setSelectedCategory(null);
   }, [activeSection]);
 
-  // Helper to create a signature key of selected options to aggregate duplicates in cart
   const getCustomizationKey = (customizations?: SelectedCustomization[]) => {
     if (!customizations) return '';
     return JSON.stringify(customizations.map(c => ({
@@ -154,13 +149,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })).sort((a, b) => a.g.localeCompare(b.g)));
   };
 
-  // Cart operations
   const addToCart = (dish: Dish, quantity = 1, notes = '', customizations?: SelectedCustomization[], customPrice?: number) => {
     const targetPrice = customPrice !== undefined ? customPrice : dish.price;
     const currentCustomKey = getCustomizationKey(customizations);
 
     setCart(prev => {
-      // Find item with same dish AND same custom selections and notes
       const existingIndex = prev.findIndex(item => 
         item.dish.id === dish.id && 
         getCustomizationKey(item.customizations) === currentCustomKey &&
@@ -173,7 +166,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return updated;
       }
 
-      // Unique dynamic ID for cart item
       const cartItemId = `${dish.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
       return [...prev, { id: cartItemId, dish, quantity, notes, customizations, customPrice: targetPrice }];
     });
@@ -202,7 +194,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Admin login
   const loginAdmin = (password: string): boolean => {
     if (password === 'admin123' || password === 'foodsal2026') {
       setIsAdminLoggedIn(true);
@@ -221,47 +212,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Mutators
+  // Mutators estritos: Só atualiza a tela após sucesso real no Supabase
   const addOrUpdateCategory = async (category: Omit<Category, 'id'> & { id?: string }) => {
-    const saved = await dbSaveCategory(category);
-    setCategories(prev => {
-      const index = prev.findIndex(c => c.id === saved.id);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = saved;
-        return updated.sort((a, b) => a.sortOrder - b.sortOrder);
-      }
-      return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
-    });
+    try {
+      const saved = await dbSaveCategory(category);
+      setCategories(prev => {
+        const index = prev.findIndex(c => c.id === saved.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = saved;
+          return updated.sort((a, b) => a.sortOrder - b.sortOrder);
+        }
+        return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
+      });
+    } catch (err: any) {
+      console.error("Erro ao salvar categoria:", err);
+      alert(`Falha ao salvar no banco de dados: ${err.message || err}`);
+      throw err;
+    }
   };
 
   const removeCategory = async (id: string) => {
-    await dbDeleteCategory(id);
-    setCategories(prev => prev.filter(c => c.id !== id));
-    setDishes(prev => prev.filter(d => d.categoryId !== id));
+    try {
+      await dbDeleteCategory(id);
+      setCategories(prev => prev.filter(c => c.id !== id));
+      setDishes(prev => prev.filter(d => d.categoryId !== id));
+    } catch (err: any) {
+      console.error("Erro ao excluir categoria:", err);
+      alert(`Falha ao excluir categoria do banco de dados: ${err.message || err}`);
+      throw err;
+    }
   };
 
   const addOrUpdateDish = async (dish: Omit<Dish, 'id'> & { id?: string }) => {
-    const saved = await dbSaveDish(dish);
-    setDishes(prev => {
-      const index = prev.findIndex(d => d.id === saved.id);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = saved;
-        return updated.sort((a, b) => a.sortOrder - b.sortOrder);
-      }
-      return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
-    });
+    try {
+      const saved = await dbSaveDish(dish);
+      setDishes(prev => {
+        const index = prev.findIndex(d => d.id === saved.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = saved;
+          return updated.sort((a, b) => a.sortOrder - b.sortOrder);
+        }
+        return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
+      });
+    } catch (err: any) {
+      console.error("Erro ao salvar prato:", err);
+      alert(`Falha ao salvar o prato: ${err.message || err}`);
+      throw err;
+    }
   };
 
   const removeDish = async (id: string) => {
-    await dbDeleteDish(id);
-    setDishes(prev => prev.filter(d => d.id !== id));
+    try {
+      await dbDeleteDish(id);
+      setDishes(prev => prev.filter(d => d.id !== id));
+    } catch (err: any) {
+      console.error("Erro ao excluir prato:", err);
+      alert(`Falha ao excluir o prato: ${err.message || err}`);
+      throw err;
+    }
   };
 
   const updateSettings = async (newSettings: SystemSettings) => {
-    const saved = await dbSaveSettings(newSettings);
-    setSettings(saved);
+    try {
+      const saved = await dbSaveSettings(newSettings);
+      setSettings(saved);
+    } catch (err: any) {
+      console.error("Erro ao salvar configurações:", err);
+      alert(`Falha ao salvar as configurações: ${err.message || err}`);
+      throw err;
+    }
   };
 
   const createOrder = async (orderPayload: Omit<Order, 'id' | 'createdAt'>): Promise<Order> => {
