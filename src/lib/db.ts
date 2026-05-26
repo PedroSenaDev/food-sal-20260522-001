@@ -52,6 +52,55 @@ export interface Order {
   createdAt: string;
 }
 
+// Inicializa o banco do Supabase com os itens iniciais se ele estiver ativo mas totalmente vazio
+export async function seedSupabaseDatabase() {
+  if (!supabase) return;
+  try {
+    console.log("Iniciando semeadura automática do Supabase...");
+    
+    // 1. Cadastra as categorias iniciais
+    const catPayloads = INITIAL_CATEGORIES.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      section: cat.section,
+      sort_order: cat.sortOrder
+    }));
+    const { error: catErr } = await supabase.from('categories').insert(catPayloads);
+    if (catErr) throw catErr;
+
+    // 2. Cadastra os pratos iniciais
+    const dishPayloads = INITIAL_DISHES.map(dish => ({
+      id: dish.id,
+      category_id: dish.categoryId,
+      name: dish.name,
+      description: dish.description,
+      price: dish.price,
+      image_url: dish.image,
+      active: dish.active,
+      section: dish.section,
+      sort_order: dish.sortOrder,
+      is_customizable: dish.isCustomizable || false,
+      customization_options: dish.customizationOptions || [],
+      sub_section: dish.subSection || null,
+      size_or_weight: dish.sizeOrWeight || null
+    }));
+    const { error: dishErr } = await supabase.from('dishes').insert(dishPayloads);
+    if (dishErr) throw dishErr;
+
+    // 3. Cadastra as configurações iniciais
+    const settingsPayloads = Object.entries(INITIAL_SETTINGS).map(([key, value]) => ({
+      key,
+      value
+    }));
+    const { error: setErr } = await supabase.from('settings').upsert(settingsPayloads);
+    if (setErr) throw setErr;
+
+    console.log("Supabase semeado com sucesso! Agora o banco online está pronto.");
+  } catch (err: any) {
+    console.error("Erro ao semear dados no Supabase. Verifique se as tabelas existem.", err);
+  }
+}
+
 // Testa o estado atual de conexão do Supabase para ajudar no diagnóstico do usuário
 export async function testSupabaseConnection(): Promise<{ 
   connected: boolean; 
@@ -70,19 +119,15 @@ export async function testSupabaseConnection(): Promise<{
   };
 
   try {
-    // 1. Testa tabela de categorias
     const catCheck = await supabase.from('categories').select('id').limit(1);
     status.tablesExist.categories = !catCheck.error;
 
-    // 2. Testa tabela de pratos
     const dishCheck = await supabase.from('dishes').select('id').limit(1);
     status.tablesExist.dishes = !dishCheck.error;
 
-    // 3. Testa tabela de configurações
     const settingsCheck = await supabase.from('settings').select('key').limit(1);
     status.tablesExist.settings = !settingsCheck.error;
 
-    // 4. Testa tabela de pedidos
     const ordersCheck = await supabase.from('orders').select('id').limit(1);
     status.tablesExist.orders = !ordersCheck.error;
 
@@ -95,7 +140,6 @@ export async function testSupabaseConnection(): Promise<{
       };
     }
 
-    // 5. Testa se escrita (Insert) é permitida (RLS desativado ou liberado para público)
     const testCatId = `test-connection-${Date.now()}`;
     const writeCheck = await supabase.from('categories').insert([{ 
       id: testCatId, 
@@ -106,7 +150,6 @@ export async function testSupabaseConnection(): Promise<{
 
     if (!writeCheck.error) {
       status.rlsWriteAllowed = true;
-      // Apaga o registro de teste
       await supabase.from('categories').delete().eq('id', testCatId);
     } else {
       return {
@@ -155,7 +198,26 @@ export async function getCategories(): Promise<Category[]> {
         .select('*')
         .order('sort_order', { ascending: true });
       
-      if (!error && data && data.length > 0) {
+      if (error) throw error;
+      
+      if (data) {
+        // Se o banco estiver conectado, mas com 0 categorias, roda o semeador automático
+        if (data.length === 0) {
+          await seedSupabaseDatabase();
+          const retry = await supabase
+            .from('categories')
+            .select('*')
+            .order('sort_order', { ascending: true });
+          if (retry.data) {
+            return retry.data.map(item => ({
+              id: item.id,
+              name: item.name,
+              section: item.section,
+              sortOrder: item.sort_order
+            }));
+          }
+        }
+        
         return data.map(item => ({
           id: item.id,
           name: item.name,
@@ -164,7 +226,7 @@ export async function getCategories(): Promise<Category[]> {
         }));
       }
     } catch (e) {
-      console.warn("Supabase categories read error, falling back to local storage:", e);
+      console.warn("Falha ao ler categorias do Supabase. Usando LocalStorage:", e);
     }
   }
 
@@ -194,36 +256,41 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
       sort_order: category.sortOrder
     };
 
-    try {
-      if (category.id) {
-        const { error } = await supabase
-          .from('categories')
-          .update({
-            name: category.name,
-            section: category.section,
-            sort_order: category.sortOrder
-          })
-          .eq('id', category.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('categories')
-          .insert([payload])
-          .select();
-        if (error) throw error;
-        if (data && data[0]) {
-          fullCategory.id = data[0].id;
-        }
+    if (category.id) {
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: category.name,
+          section: category.section,
+          sort_order: category.sortOrder
+        })
+        .eq('id', category.id);
+      
+      if (error) {
+        console.error("Erro ao editar categoria no Supabase:", error);
+        throw new Error(`Erro no Supabase: ${error.message}`);
       }
-    } catch (e) {
-      console.error("Failed to write category on Supabase, writing to LocalStorage fallback only:", e);
+    } else {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([payload])
+        .select();
+      
+      if (error) {
+        console.error("Erro ao inserir categoria no Supabase:", error);
+        throw new Error(`Erro no Supabase: ${error.message}`);
+      }
+      if (data && data[0]) {
+        fullCategory.id = data[0].id;
+      }
     }
   }
 
+  // Atualiza LocalStorage apenas como cache local rápido
   if (isBrowser) {
     initializeLocalStorage();
     const categories = await getCategories();
-    const index = categories.findIndex(c => c.id === category.id);
+    const index = categories.findIndex(c => c.id === fullCategory.id);
 
     if (index >= 0) {
       categories[index] = fullCategory;
@@ -238,14 +305,14 @@ export async function saveCategory(category: Omit<Category, 'id'> & { id?: strin
 
 export async function deleteCategory(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
-    try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    } catch (e) {
-      console.error("Failed to delete category on Supabase:", e);
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Erro ao deletar categoria no Supabase:", error);
+      throw new Error(`Erro no Supabase: ${error.message}`);
     }
   }
 
@@ -271,7 +338,9 @@ export async function getDishes(): Promise<Dish[]> {
         .select('*')
         .order('sort_order', { ascending: true });
       
-      if (!error && data && data.length > 0) {
+      if (error) throw error;
+      
+      if (data) {
         return data.map(item => ({
           id: item.id,
           categoryId: item.category_id,
@@ -291,7 +360,7 @@ export async function getDishes(): Promise<Dish[]> {
         }));
       }
     } catch (e) {
-      console.warn("Supabase dishes read error, falling back to local storage:", e);
+      console.warn("Falha ao ler pratos do Supabase. Usando LocalStorage:", e);
     }
   }
 
@@ -339,45 +408,49 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
       size_or_weight: dish.sizeOrWeight || null
     };
 
-    try {
-      if (dish.id) {
-        const { error } = await supabase
-          .from('dishes')
-          .update({
-            category_id: dish.categoryId,
-            name: dish.name,
-            description: dish.description,
-            price: dish.price,
-            image_url: dish.image,
-            active: dish.active,
-            section: dish.section,
-            sort_order: dish.sortOrder,
-            is_customizable: dish.isCustomizable || false,
-            customization_options: dish.customizationOptions || [],
-            sub_section: dish.subSection || null,
-            size_or_weight: dish.sizeOrWeight || null
-          })
-          .eq('id', dish.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('dishes')
-          .insert([payload])
-          .select();
-        if (error) throw error;
-        if (data && data[0]) {
-          fullDish.id = data[0].id;
-        }
+    if (dish.id) {
+      const { error } = await supabase
+        .from('dishes')
+        .update({
+          category_id: dish.categoryId,
+          name: dish.name,
+          description: dish.description,
+          price: dish.price,
+          image_url: dish.image,
+          active: dish.active,
+          section: dish.section,
+          sort_order: dish.sortOrder,
+          is_customizable: dish.isCustomizable || false,
+          customization_options: dish.customizationOptions || [],
+          sub_section: dish.subSection || null,
+          size_or_weight: dish.sizeOrWeight || null
+        })
+        .eq('id', dish.id);
+      
+      if (error) {
+        console.error("Erro ao editar prato no Supabase:", error);
+        throw new Error(`Erro no Supabase: ${error.message}`);
       }
-    } catch (e) {
-      console.error("Failed to write dish on Supabase:", e);
+    } else {
+      const { data, error } = await supabase
+        .from('dishes')
+        .insert([payload])
+        .select();
+      
+      if (error) {
+        console.error("Erro ao inserir prato no Supabase:", error);
+        throw new Error(`Erro no Supabase: ${error.message}`);
+      }
+      if (data && data[0]) {
+        fullDish.id = data[0].id;
+      }
     }
   }
 
   if (isBrowser) {
     initializeLocalStorage();
     const dishes = await getDishes();
-    const index = dishes.findIndex(d => d.id === dish.id);
+    const index = dishes.findIndex(d => d.id === fullDish.id);
 
     if (index >= 0) {
       dishes[index] = fullDish;
@@ -393,14 +466,14 @@ export async function saveDish(dish: Omit<Dish, 'id'> & { id?: string }): Promis
 
 export async function deleteDish(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
-    try {
-      const { error } = await supabase
-        .from('dishes')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    } catch (e) {
-      console.error("Failed to delete dish on Supabase:", e);
+    const { error } = await supabase
+      .from('dishes')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Erro ao deletar prato no Supabase:", error);
+      throw new Error(`Erro no Supabase: ${error.message}`);
     }
   }
 
@@ -421,7 +494,9 @@ export async function getOrders(): Promise<Order[]> {
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (!error && data && data.length > 0) {
+      if (error) throw error;
+      
+      if (data) {
         return data.map(item => ({
           id: item.id,
           tableNumber: item.table_number,
@@ -431,7 +506,7 @@ export async function getOrders(): Promise<Order[]> {
         }));
       }
     } catch (e) {
-      console.warn("Supabase orders read error:", e);
+      console.warn("Falha ao ler pedidos do Supabase:", e);
     }
   }
 
@@ -454,19 +529,19 @@ export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise
   };
 
   if (isSupabaseConfigured && supabase) {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .insert([{
-          id: newId,
-          table_number: order.tableNumber,
-          items: JSON.stringify(order.items),
-          total: order.total,
-          created_at: createdAt
-        }]);
-      if (error) throw error;
-    } catch (e) {
-      console.error("Failed to save order on Supabase:", e);
+    const { error } = await supabase
+      .from('orders')
+      .insert([{
+        id: newId,
+        table_number: order.tableNumber,
+        items: JSON.stringify(order.items),
+        total: order.total,
+        created_at: createdAt
+      }]);
+    
+    if (error) {
+      console.error("Erro ao salvar pedido no Supabase:", error);
+      throw new Error(`Erro no Supabase: ${error.message}`);
     }
   }
 
@@ -487,7 +562,9 @@ export async function getSettings(): Promise<SystemSettings> {
         .from('settings')
         .select('*');
       
-      if (!error && data && data.length > 0) {
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
         const settings: Partial<SystemSettings> = {};
         data.forEach(item => {
           if (item.key in INITIAL_SETTINGS) {
@@ -497,7 +574,7 @@ export async function getSettings(): Promise<SystemSettings> {
         return { ...INITIAL_SETTINGS, ...settings };
       }
     } catch (e) {
-      console.warn("Supabase settings read error, falling back to local storage:", e);
+      console.warn("Falha ao ler configurações do Supabase. Usando LocalStorage:", e);
     }
   }
 
@@ -520,8 +597,9 @@ export async function saveSettings(settings: SystemSettings): Promise<SystemSett
         if (error) throw error;
       });
       await Promise.all(promises);
-    } catch (e) {
-      console.error("Failed to write settings on Supabase:", e);
+    } catch (error: any) {
+      console.error("Erro ao salvar configurações no Supabase:", error);
+      throw new Error(`Erro no Supabase: ${error.message}`);
     }
   }
 
@@ -531,74 +609,4 @@ export async function saveSettings(settings: SystemSettings): Promise<SystemSett
   }
 
   return settings;
-}
-
-export async function uploadImage(file: File): Promise<string> {
-  const compressImage = (imageFile: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(imageFile);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 500;
-          const MAX_HEIGHT = 500;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(compressedBase64);
-        };
-      };
-    });
-  };
-
-  const webOptimizedImageBase64 = await compressImage(file);
-
-  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
-  const cloudinaryUploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
-
-  if (cloudinaryCloudName && cloudinaryUploadPreset) {
-    try {
-      const formData = new FormData();
-      formData.append('file', webOptimizedImageBase64);
-      formData.append('upload_preset', cloudinaryUploadPreset);
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.secure_url;
-      }
-    } catch (e) {
-      console.error('Cloudinary upload failed, falling back to optimized lightweight base64', e);
-    }
-  }
-
-  return webOptimizedImageBase64;
 }
