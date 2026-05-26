@@ -416,8 +416,31 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise<Order> {
-  const newId = `ord-${Math.floor(1000 + Math.random() * 9000)}`;
+  let nextNum = 1;
+
+  if (supabase) {
+    try {
+      // Busca a contagem real e exata de registros no banco para definir a sequência perfeita
+      const { count, error } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+      if (!error && count !== null) {
+        nextNum = count + 1;
+      }
+    } catch (e) {
+      console.error("Erro ao buscar contador de pedidos no Supabase:", e);
+    }
+  } else if (isBrowser) {
+    initializeLocalStorage();
+    const localData = localStorage.getItem(STORAGE_KEYS.ORDERS);
+    const orders: Order[] = localData ? JSON.parse(localData) : [];
+    nextNum = orders.length + 1;
+  }
+
+  const formattedNum = nextNum.toString().padStart(4, '0'); // Ex: "0001", "0002"
+  const newId = `ord-${formattedNum}`;
   const createdAt = new Date().toISOString();
+
   const fullOrder: Order = {
     id: newId,
     tableNumber: order.tableNumber,

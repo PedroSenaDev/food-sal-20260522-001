@@ -68,9 +68,6 @@ export default function Home() {
           <p className="text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase text-[#F5E6D3]/80 mt-3 select-none">
             {settings.businessName.split('-')[1]?.trim() || 'Menu Digital Premium'}
           </p>
-
-          {/* Fine separator line */}
-          <div className="w-12 h-[1px] bg-brand-red/40 mt-5" />
           
         </div>
       </section>

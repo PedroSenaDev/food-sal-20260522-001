@@ -100,8 +100,9 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
       deliveryType === 'mesa' ? `Mesa ${tableNumber || 'Não informada'}` :
       deliveryType === 'delivery' ? 'Delivery (Entrega)' : 'Retirada no Balcão';
 
+    let savedOrder;
     try {
-      await createOrder({
+      savedOrder = await createOrder({
         tableNumber: tableNumber || 'Balcão',
         items: orderItems,
         total: cartTotal
@@ -109,6 +110,9 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     } catch (e) {
       console.error('Failed to log order in history database', e);
     }
+
+    // Define a identificação limpa do pedido. Ex: "#0001"
+    const orderTag = savedOrder ? `#${savedOrder.id.replace('ord-', '')}` : `#${Math.floor(1000 + Math.random() * 9000)}`;
 
     // 2. Format WhatsApp message
     const business = settings.businessName;
@@ -148,6 +152,7 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     
     const message = `${settings.welcomeMessage}\n\n` +
       `*🍴 ${business}* \n` +
+      `*PEDIDO ${orderTag}*\n` +
       `----------------------------------\n` +
       `${detailsStr}` +
       `----------------------------------\n` +
@@ -158,6 +163,7 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
       `_Enviado pelo Cardápio Digital FoodSal_`;
 
     const encodedMessage = encodeURIComponent(message);
+    // Envia dinamicamente direto para o número do gerente cadastrado
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${settings.whatsappNumber}&text=${encodedMessage}`;
     
     window.open(whatsappUrl, '_blank');
