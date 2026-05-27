@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { X, ShoppingBag, Trash2, Plus, Minus, Send, ArrowLeft, User, Phone, MapPin, CreditCard, DollarSign } from 'lucide-react';
+import { X, ShoppingBag, Trash2, Plus, Minus, Send, ArrowLeft, User, Phone, MapPin, CreditCard, DollarSign, Loader2, Search } from 'lucide-react';
 
 interface TrayModalProps {
   isOpen: boolean;
@@ -32,16 +32,35 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
   const [fullName, setFullName] = useState('');
   const [contact, setContact] = useState('');
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('mesa');
-  const [address, setAddress] = useState('');
+  
+  // Address States via CEP
+  const [cep, setCep] = useState('');
+  const [street, setStreet] = useState('');
+  const [number, setNumber] = useState('');
+  const [complement, setComplement] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [city, setCity] = useState('');
+  const [uf, setUf] = useState('');
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
+
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   const [changeFor, setChangeFor] = useState('');
   const [formError, setFormError] = useState('');
 
-  // Reset steps when modal opens/closes
+  // Reset steps and form states when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setStep('cart');
       setFormError('');
+      setFullName('');
+      setContact('');
+      setCep('');
+      setStreet('');
+      setNumber('');
+      setComplement('');
+      setNeighborhood('');
+      setCity('');
+      setUf('');
       if (tableNumber) {
         setDeliveryType('mesa');
       } else {
@@ -56,6 +75,53 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     return `${settings.currencySymbol} ${val.toFixed(2)}`;
   };
 
+  // Cep auto-format as typing (XXXXX-XXX)
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    
+    if (rawValue.length <= 8) {
+      setCep(rawValue);
+    }
+
+    if (rawValue.length === 8) {
+      setIsFetchingCep(true);
+      setFormError('');
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${rawValue}/json/`);
+        const data = await response.json();
+        
+        if (data.erro) {
+          setFormError('CEP não encontrado. Por favor, verifique o número.');
+          setStreet('');
+          setNeighborhood('');
+          setCity('');
+          setUf('');
+        } else {
+          setStreet(data.logradouro || '');
+          setNeighborhood(data.bairro || '');
+          setCity(data.localidade || '');
+          setUf(data.uf || '');
+          
+          // Auto-focus physical number input for quick flow
+          setTimeout(() => {
+            const numInput = document.getElementById('address-number');
+            if (numInput) numInput.focus();
+          }, 80);
+        }
+      } catch (err) {
+        setFormError('Erro de conexão ao buscar o CEP. Preencha os campos abaixo.');
+      } finally {
+        setIsFetchingCep(false);
+      }
+    }
+  };
+
+  const getFormattedCepDisplay = (val: string) => {
+    const clean = val.replace(/\D/g, '');
+    if (clean.length <= 5) return clean;
+    return `${clean.slice(0, 5)}-${clean.slice(5, 8)}`;
+  };
+
   const validateForm = () => {
     if (!fullName.trim()) {
       setFormError('Por favor, informe seu nome completo.');
@@ -65,9 +131,27 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
       setFormError('Por favor, informe um contato de WhatsApp válido.');
       return false;
     }
-    if (deliveryType === 'delivery' && !address.trim()) {
-      setFormError('Por favor, preencha o endereço completo para entrega.');
-      return false;
+    if (deliveryType === 'delivery') {
+      if (!cep || cep.length < 8) {
+        setFormError('Por favor, informe um CEP válido com 8 dígitos.');
+        return false;
+      }
+      if (!street.trim()) {
+        setFormError('Por favor, informe a rua ou logradouro.');
+        return false;
+      }
+      if (!number.trim()) {
+        setFormError('Por favor, informe o número da residência.');
+        return false;
+      }
+      if (!neighborhood.trim()) {
+        setFormError('Por favor, informe o bairro.');
+        return false;
+      }
+      if (!city.trim()) {
+        setFormError('Por favor, informe a cidade.');
+        return false;
+      }
     }
     setFormError('');
     return true;
@@ -97,6 +181,7 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
       };
     });
 
+    // Format address string cleanly for delivery
     const deliveryMethodLabel = 
       deliveryType === 'mesa' ? `Mesa ${tableNumber || 'Não informada'}` :
       deliveryType === 'delivery' ? 'Delivery (Entrega)' : 'Retirada no Balcão';
@@ -141,7 +226,8 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
                      `*📍 RECEBIMENTO:* ${deliveryMethodLabel}\n`;
 
     if (deliveryType === 'delivery') {
-      detailsStr += `*🏠 ENDEREÇO:* ${address}\n`;
+      const addressString = `${street}, Nº ${number}${complement ? ` (${complement})` : ''} - ${neighborhood}, ${city}/${uf} - CEP: ${getFormattedCepDisplay(cep)}`;
+      detailsStr += `*🏠 ENDEREÇO:* ${addressString}\n`;
     }
 
     detailsStr += `*💳 PAGAMENTO:* ${paymentMethod}\n`;
@@ -423,20 +509,126 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
                   </div>
                 </div>
 
-                {/* Dynamic Address Field for Delivery */}
+                {/* DYNAMIC AUTO-CEP ADDRESS SECTION */}
                 {deliveryType === 'delivery' && (
-                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-                    <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block">
-                      Endereço Completo para Entrega
-                    </label>
-                    <textarea
-                      required
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Rua, número, bairro, complemento..."
-                      rows={2}
-                      className="w-full p-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red bg-white outline-none text-xs text-stone-800 font-semibold resize-none"
-                    />
+                  <div className="space-y-3.5 p-4 bg-stone-50 rounded-2xl border border-stone-150 animate-in slide-in-from-top-3 duration-300">
+                    
+                    {/* CEP Field */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block">
+                        CEP (Apenas números)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          required
+                          value={getFormattedCepDisplay(cep)}
+                          onChange={handleCepChange}
+                          placeholder="Digite seu CEP. Ex: 01310-100"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red bg-white outline-none text-xs text-stone-800 font-bold"
+                        />
+                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400">
+                          {isFetchingCep ? (
+                            <Loader2 size={15} className="animate-spin text-brand-red" />
+                          ) : (
+                            <Search size={15} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Street Name (logradouro) */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-extrabold text-stone-450 uppercase tracking-widest block">
+                        Rua / Logradouro
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={street}
+                        onChange={(e) => setStreet(e.target.value)}
+                        placeholder="Nome da rua"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red bg-white/70 text-xs text-stone-800 font-semibold"
+                      />
+                    </div>
+
+                    {/* Grid of Number & Complement */}
+                    <div className="grid grid-cols-5 gap-3">
+                      {/* Number */}
+                      <div className="col-span-2 space-y-1.5">
+                        <label className="text-[10px] font-extrabold text-stone-450 uppercase tracking-widest block">
+                          Número
+                        </label>
+                        <input
+                          id="address-number"
+                          type="text"
+                          required
+                          value={number}
+                          onChange={(e) => setNumber(e.target.value)}
+                          placeholder="Nº"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red bg-white text-xs text-stone-800 font-bold"
+                        />
+                      </div>
+                      {/* Complement */}
+                      <div className="col-span-3 space-y-1.5">
+                        <label className="text-[10px] font-extrabold text-stone-450 uppercase tracking-widest block truncate">
+                          Complemento (Opcional)
+                        </label>
+                        <input
+                          type="text"
+                          value={complement}
+                          onChange={(e) => setComplement(e.target.value)}
+                          placeholder="Apto, Bloco, etc."
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red bg-white text-xs text-stone-800 font-semibold"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Neighborhood (Bairro) */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-extrabold text-stone-450 uppercase tracking-widest block">
+                        Bairro
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={neighborhood}
+                        onChange={(e) => setNeighborhood(e.target.value)}
+                        placeholder="Nome do bairro"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:border-brand-red bg-white/70 text-xs text-stone-800 font-semibold"
+                      />
+                    </div>
+
+                    {/* Grid of City & UF */}
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="col-span-3 space-y-1.5">
+                        <label className="text-[10px] font-extrabold text-stone-455 uppercase tracking-widest block">
+                          Cidade
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-100 text-xs text-stone-500 font-semibold cursor-not-allowed"
+                          disabled
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-extrabold text-stone-455 uppercase tracking-widest block">
+                          UF
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={uf}
+                          onChange={(e) => setUf(e.target.value)}
+                          className="w-full px-2 py-2.5 rounded-xl border border-stone-200 bg-stone-100 text-xs text-stone-500 font-bold text-center cursor-not-allowed"
+                          disabled
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 )}
 
