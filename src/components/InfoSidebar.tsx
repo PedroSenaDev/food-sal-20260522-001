@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { X, MapPin, Phone, Clock, ShieldCheck, Globe } from 'lucide-react';
+import { X, MapPin, Phone, Clock, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 interface InfoSidebarProps {
@@ -54,7 +54,7 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
               {settings.welcomeTitle || `Seja bem-vindo ao ${settings.businessName}!`}
             </h3>
             <p className="text-xs text-stone-500 leading-relaxed">
-              {settings.welcomeText || 'Preparamos cada prato com ingredientes selecionados e o máximo carinho para proporcionar uma experiência memorável direto na sua mesa.'}
+              {settings.welcomeText || 'Preparamos cada prato com ingredientes selecionados e o máximo carinho para proporcionar uma experiência gastronômica memorável direto na sua mesa.'}
             </p>
           </div>
 
@@ -124,9 +124,13 @@ export default function InfoSidebar({ isOpen, onClose }: InfoSidebarProps) {
                 href={settings.instagramUrl || '#'} 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2.5 rounded-lg bg-stone-100 hover:bg-brand-red/5 text-stone-600 hover:text-brand-red font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                className="p-2 py-1.5 rounded-lg bg-stone-100 hover:bg-brand-red/5 text-stone-600 hover:text-brand-red font-bold text-xs transition-all cursor-pointer flex items-center gap-2 border border-stone-200"
               >
-                <Globe size={14} />
+                <img 
+                  src="/instagram.png" 
+                  alt="Logo Instagram" 
+                  className="h-4 w-4 object-contain" 
+                />
                 <span>Instagram</span>
               </a>
             </div>
