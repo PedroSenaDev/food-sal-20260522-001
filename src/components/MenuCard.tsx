@@ -14,9 +14,8 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
   const { settings, addToCart } = useApp();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Customization selection state
-  // key: Group ID, value: array of chosen item names
-  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  // Customization selection state: Record<groupId, Record<itemName, quantity>>
+  const [selections, setSelections] = useState<Record<string, Record<string, number>>>({});
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [currentPrice, setCurrentPrice] = useState(dish.price);
@@ -30,14 +29,20 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
   // Reset customizations and quantity when modal opens/closes
   useEffect(() => {
     if (isDetailOpen) {
-      const initialSelections: Record<string, string[]> = {};
+      const initialSelections: Record<string, Record<string, number>> = {};
       if (dish.isCustomizable && dish.customizationOptions) {
         dish.customizationOptions.forEach(group => {
-          // pre-select fixed options if min requirement and items match
+          initialSelections[group.id] = {};
+          
+          // pre-select fixed options if min requirement and items match exactly
           if (group.min === group.max && group.items.length === group.min) {
-            initialSelections[group.id] = group.items.map(item => item.name);
+            group.items.forEach(item => {
+              initialSelections[group.id][item.name] = 1;
+            });
           } else {
-            initialSelections[group.id] = [];
+            group.items.forEach(item => {
+              initialSelections[group.id][item.name] = 0;
+            });
           }
         });
       }
@@ -49,17 +54,17 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     }
   }, [isDetailOpen, dish]);
 
-  // Recalculate price dynamically (sum selected items with configured prices multiplied by quantity)
+  // Recalculate price dynamically (sum selected items with configured prices multiplied by their quantities and total quantity)
   useEffect(() => {
     let extraPrice = 0;
     if (dish.isCustomizable && dish.customizationOptions) {
-      Object.entries(selections).forEach(([groupId, items]) => {
+      Object.entries(selections).forEach(([groupId, itemsMap]) => {
         const group = dish.customizationOptions?.find(g => g.id === groupId);
         if (group) {
-          items.forEach(itemName => {
+          Object.entries(itemsMap).forEach(([itemName, qty]) => {
             const matchedItem = group.items.find(i => i.name === itemName);
-            if (matchedItem && matchedItem.price) {
-              extraPrice += matchedItem.price;
+            if (matchedItem && matchedItem.price && qty > 0) {
+              extraPrice += matchedItem.price * qty;
             }
           });
         }
@@ -69,44 +74,57 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     setCurrentPrice((dish.price + extraPrice) * quantity);
   }, [selections, dish, quantity]);
 
-  const handleOptionToggle = (group: CustomizationGroup, itemName: string, isRadio: boolean) => {
-    const currentGroupSelections = selections[group.id] || [];
+  // Helper to get total selected quantities in a specific group
+  const getGroupSelectedCount = (groupId: string): number => {
+    const groupMap = selections[groupId] || {};
+    return Object.values(groupMap).reduce((sum, val) => sum + val, 0);
+  };
 
-    const exists = currentGroupSelections.includes(itemName);
-    if (exists) {
-      setSelections(prev => ({
-        ...prev,
-        [group.id]: currentGroupSelections.filter(n => n !== itemName)
-      }));
-      setErrorMsg('');
-    } else {
-      if (isRadio) {
-        setSelections(prev => ({
-          ...prev,
-          [group.id]: [itemName]
-        }));
-        setErrorMsg('');
-      } else {
-        // Estritamente limitado ao limite máximo!
-        if (currentGroupSelections.length >= group.max) {
-          setErrorMsg(`Você pode selecionar no máximo ${group.max} opções em "${group.title}"`);
-          return;
-        }
-        setSelections(prev => ({
-          ...prev,
-          [group.id]: [...currentGroupSelections, itemName]
-        }));
-        setErrorMsg('');
-      }
+  const handleOptionQuantityChange = (group: CustomizationGroup, itemName: string, increment: number) => {
+    const currentGroupMap = { ...(selections[group.id] || {}) };
+    const currentQty = currentGroupMap[itemName] || 0;
+    const currentGroupTotal = getGroupSelectedCount(group.id);
+
+    const targetQty = currentQty + increment;
+
+    if (targetQty < 0) return;
+
+    // Check maximum constraint for the entire group
+    if (increment > 0 && currentGroupTotal >= group.max) {
+      setErrorMsg(`Você já atingiu o limite máximo de ${group.max} opções para "${group.title}"`);
+      return;
     }
+
+    currentGroupMap[itemName] = targetQty;
+    setSelections(prev => ({
+      ...prev,
+      [group.id]: currentGroupMap
+    }));
+    setErrorMsg('');
+  };
+
+  const handleOptionToggleSingle = (group: CustomizationGroup, itemName: string) => {
+    // Behavior for single selection groups (radio button style)
+    const currentGroupMap: Record<string, number> = {};
+    
+    // Set selected to 1, others to 0
+    group.items.forEach(item => {
+      currentGroupMap[item.name] = item.name === itemName ? 1 : 0;
+    });
+
+    setSelections(prev => ({
+      ...prev,
+      [group.id]: currentGroupMap
+    }));
+    setErrorMsg('');
   };
 
   const handleAddToCart = () => {
-    // Validate minimum required selections
+    // Validate minimum required selections per group
     if (dish.isCustomizable && dish.customizationOptions) {
       for (const group of dish.customizationOptions) {
-        const chosen = selections[group.id] || [];
-        if (chosen.length < group.min) {
+        const totalChosen = getGroupSelectedCount(group.id);
+        if (totalChosen < group.min) {
           setErrorMsg(`Por favor, selecione pelo menos ${group.min} opções em "${group.title}"`);
           return;
         }
@@ -117,16 +135,23 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     const finalizedCustoms: SelectedCustomization[] = [];
     if (dish.isCustomizable && dish.customizationOptions) {
       dish.customizationOptions.forEach(group => {
-        const chosenNames = selections[group.id] || [];
-        if (chosenNames.length > 0) {
-          const itemsWithPrices = chosenNames.map(name => {
-            const match = group.items.find(i => i.name === name);
-            return { name, price: match?.price };
-          });
+        const itemsMap = selections[group.id] || {};
+        const groupItems: { name: string; price?: number }[] = [];
 
+        Object.entries(itemsMap).forEach(([itemName, qty]) => {
+          if (qty > 0) {
+            const match = group.items.find(i => i.name === itemName);
+            // If qty is > 1, represent it in the array or as formatted name
+            for (let i = 0; i < qty; i++) {
+              groupItems.push({ name: itemName, price: match?.price });
+            }
+          }
+        });
+
+        if (groupItems.length > 0) {
           finalizedCustoms.push({
             groupTitle: group.title,
-            items: itemsWithPrices
+            items: groupItems
           });
         }
       });
@@ -260,7 +285,8 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
               {dish.isCustomizable && dish.customizationOptions && (
                 <div className="space-y-6 pt-2 border-t border-stone-100">
                   {dish.customizationOptions.map((group) => {
-                    const chosen = selections[group.id] || [];
+                    const groupSelections = selections[group.id] || {};
+                    const totalChosenCount = getGroupSelectedCount(group.id);
                     const isRadio = group.min === 1 && group.max === 1;
 
                     return (
@@ -283,46 +309,98 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                           
                           {/* Checked Pill */}
                           <div className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                            chosen.length >= group.min
+                            totalChosenCount >= group.min
                               ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-amber-100 text-amber-800'
                           }`}>
-                            {chosen.length} / {group.max} selecionado(s)
+                            {totalChosenCount} / {group.max} selecionado(s)
                           </div>
                         </div>
 
                         {/* List of custom options */}
                         <div className="space-y-2">
                           {group.items.map((item) => {
-                            const isSelected = chosen.includes(item.name);
+                            const itemQty = groupSelections[item.name] || 0;
+                            const isSelected = itemQty > 0;
+
                             return (
-                              <label
+                              <div
                                 key={item.name}
-                                onClick={() => handleOptionToggle(group, item.name, isRadio)}
-                                className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                                   isSelected
                                     ? 'bg-white border-brand-red ring-1 ring-brand-red shadow-sm'
-                                    : 'bg-white border-stone-200 hover:border-stone-300'
+                                    : 'bg-white border-stone-200'
                                 }`}
                               >
-                                <div className="flex items-center gap-3">
-                                  {/* Custom Checkbox/Radio graphic */}
-                                  <div className={`h-5 w-5 rounded-md flex items-center justify-center shrink-0 border transition-all ${
-                                    isSelected
-                                      ? 'bg-brand-red border-brand-red text-white'
-                                      : 'border-stone-300 bg-white'
-                                  }`}>
-                                    {isSelected && <span className="text-[10px] font-bold">✓</span>}
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  {isRadio ? (
+                                    /* Radio Button graphic for single choice groups */
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOptionToggleSingle(group, item.name)}
+                                      className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
+                                        isSelected
+                                          ? 'bg-brand-red border-brand-red text-white'
+                                          : 'border-stone-300 bg-white'
+                                      }`}
+                                    >
+                                      {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
+                                    </button>
+                                  ) : (
+                                    /* Quantity indicator or checkbox for multiple choice groups */
+                                    <div className={`h-5 w-5 rounded-md flex items-center justify-center shrink-0 border transition-all ${
+                                      isSelected
+                                        ? 'bg-brand-red border-brand-red text-white font-mono text-[10px] font-extrabold'
+                                        : 'border-stone-300 bg-white text-transparent'
+                                    }`}>
+                                      {isSelected ? `${itemQty}` : '✓'}
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-xs font-bold text-stone-800 truncate">{item.name}</span>
+                                    {item.price && (
+                                      <span className="text-[10px] font-bold text-brand-red">
+                                        + {formatPrice(item.price)} cada
+                                      </span>
+                                    )}
                                   </div>
-                                  <span className="text-xs font-bold text-stone-800">{item.name}</span>
                                 </div>
 
-                                {item.price && (
-                                  <span className="text-xs font-bold text-brand-red">
-                                    + {formatPrice(item.price)}
-                                  </span>
+                                {/* Quantity Control on Right (only if group allows more than 1 option) */}
+                                {!isRadio ? (
+                                  <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-lg p-0.5 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOptionQuantityChange(group, item.name, -1)}
+                                      disabled={itemQty === 0}
+                                      className="p-1 rounded text-stone-500 hover:bg-white disabled:opacity-30 active:scale-90 cursor-pointer"
+                                    >
+                                      <Minus size={9} />
+                                    </button>
+                                    <span className="text-[10px] font-bold w-4 text-center text-stone-700">
+                                      {itemQty}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOptionQuantityChange(group, item.name, 1)}
+                                      disabled={totalChosenCount >= group.max}
+                                      className="p-1 rounded text-stone-500 hover:bg-white disabled:opacity-30 active:scale-90 cursor-pointer"
+                                    >
+                                      <Plus size={9} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  /* Clean Select action for Radio items */
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOptionToggleSingle(group, item.name)}
+                                    className="text-[10px] font-bold text-brand-red hover:underline px-2 py-1 cursor-pointer"
+                                  >
+                                    {isSelected ? 'Selecionado' : 'Selecionar'}
+                                  </button>
                                 )}
-                              </label>
+                              </div>
                             );
                           })}
                         </div>
