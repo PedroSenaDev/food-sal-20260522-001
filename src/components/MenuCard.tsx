@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dish, CustomizationGroup } from '../lib/mockData';
 import { useApp, SelectedCustomization } from '../context/AppContext';
-import { X, ChevronRight, CheckCircle, Info } from 'lucide-react';
+import { X, ChevronRight, CheckCircle, Info, Plus, Minus } from 'lucide-react';
 
 interface MenuCardProps {
   dish: Dish;
@@ -18,6 +18,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
   // key: Group ID, value: array of chosen item names
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [notes, setNotes] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [currentPrice, setCurrentPrice] = useState(dish.price);
   const [errorMsg, setErrorMsg] = useState('');
   const [addedAnimation, setAddedAnimation] = useState(false);
@@ -26,7 +27,7 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     return `${settings.currencySymbol} ${val.toFixed(2)}`;
   };
 
-  // Reset customizations when modal opens/closes
+  // Reset customizations and quantity when modal opens/closes
   useEffect(() => {
     if (isDetailOpen) {
       const initialSelections: Record<string, string[]> = {};
@@ -42,30 +43,31 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       }
       setSelections(initialSelections);
       setNotes('');
+      setQuantity(1);
       setCurrentPrice(dish.price);
       setErrorMsg('');
     }
   }, [isDetailOpen, dish]);
 
-  // Recalculate price dynamically (sum selected items with configured prices)
+  // Recalculate price dynamically (sum selected items with configured prices multiplied by quantity)
   useEffect(() => {
-    if (!dish.isCustomizable || !dish.customizationOptions) return;
-
     let extraPrice = 0;
-    Object.entries(selections).forEach(([groupId, items]) => {
-      const group = dish.customizationOptions?.find(g => g.id === groupId);
-      if (group) {
-        items.forEach(itemName => {
-          const matchedItem = group.items.find(i => i.name === itemName);
-          if (matchedItem && matchedItem.price) {
-            extraPrice += matchedItem.price;
-          }
-        });
-      }
-    });
+    if (dish.isCustomizable && dish.customizationOptions) {
+      Object.entries(selections).forEach(([groupId, items]) => {
+        const group = dish.customizationOptions?.find(g => g.id === groupId);
+        if (group) {
+          items.forEach(itemName => {
+            const matchedItem = group.items.find(i => i.name === itemName);
+            if (matchedItem && matchedItem.price) {
+              extraPrice += matchedItem.price;
+            }
+          });
+        }
+      });
+    }
 
-    setCurrentPrice(dish.price + extraPrice);
-  }, [selections, dish]);
+    setCurrentPrice((dish.price + extraPrice) * quantity);
+  }, [selections, dish, quantity]);
 
   const handleOptionToggle = (group: CustomizationGroup, itemName: string, isRadio: boolean) => {
     const currentGroupSelections = selections[group.id] || [];
@@ -130,7 +132,8 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
       });
     }
 
-    addToCart(dish, 1, notes, finalizedCustoms, currentPrice);
+    const unitPrice = currentPrice / quantity;
+    addToCart(dish, quantity, notes, finalizedCustoms, unitPrice);
     
     // Play success feedback
     setAddedAnimation(true);
@@ -363,31 +366,54 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                 </span>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsDetailOpen(false)}
-                  className="py-2 px-3.5 rounded-xl border border-stone-250 hover:bg-stone-100 text-stone-600 font-bold text-xs uppercase tracking-wider cursor-pointer transition-all"
-                >
-                  Voltar
-                </button>
-                <button
-                  onClick={handleAddToCart}
-                  disabled={addedAnimation}
-                  className={`py-2 px-4.5 rounded-xl text-white font-bold text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 transition-all duration-300 ${
-                    addedAnimation 
-                      ? 'bg-emerald-600 shadow-emerald-200' 
-                      : 'bg-brand-red hover:bg-brand-darkred shadow-brand-red/10 cursor-pointer active:scale-98'
-                  }`}
-                >
-                  {addedAnimation ? (
-                    <>
-                      <CheckCircle size={14} />
-                      <span>Adicionado!</span>
-                    </>
-                  ) : (
-                    <span>Adicionar</span>
-                  )}
-                </button>
+              <div className="flex items-center gap-3">
+                {/* Quantity Controls inside details modal */}
+                <div className="flex items-center gap-1 bg-white rounded-xl p-0.5 border border-stone-200 shadow-sm shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-50 active:scale-90 cursor-pointer"
+                  >
+                    <Minus size={11} />
+                  </button>
+                  <span className="text-xs font-bold w-5 text-center text-stone-700">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(q => q + 1)}
+                    className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-50 active:scale-90 cursor-pointer"
+                  >
+                    <Plus size={11} />
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsDetailOpen(false)}
+                    className="py-2 px-3.5 rounded-xl border border-stone-250 hover:bg-stone-100 text-stone-600 font-bold text-xs uppercase tracking-wider cursor-pointer transition-all"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={addedAnimation}
+                    className={`py-2 px-4.5 rounded-xl text-white font-bold text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 transition-all duration-300 ${
+                      addedAnimation 
+                        ? 'bg-emerald-600 shadow-emerald-200' 
+                        : 'bg-brand-red hover:bg-brand-darkred shadow-brand-red/10 cursor-pointer active:scale-98'
+                    }`}
+                  >
+                    {addedAnimation ? (
+                      <>
+                        <CheckCircle size={14} />
+                        <span>Adicionado!</span>
+                      </>
+                    ) : (
+                      <span>Adicionar</span>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -26,9 +26,9 @@ export default function CategoryNav() {
   if (categories.length === 0) return null;
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full sm:px-8">
       {/* Scroll Navigation Buttons for Desktop */}
-      <div className="absolute inset-y-0 -left-4 flex items-center justify-center pointer-events-none z-10 hidden sm:flex">
+      <div className="absolute inset-y-0 left-0 flex items-center justify-center pointer-events-none z-10 hidden sm:flex">
         <button
           onClick={() => handleScroll('left')}
           className="p-1.5 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-brand-red shadow-md hover:bg-stone-50 cursor-pointer pointer-events-auto transition-all"
@@ -37,7 +37,7 @@ export default function CategoryNav() {
         </button>
       </div>
 
-      <div className="absolute inset-y-0 -right-4 flex items-center justify-center pointer-events-none z-10 hidden sm:flex">
+      <div className="absolute inset-y-0 right-0 flex items-center justify-center pointer-events-none z-10 hidden sm:flex">
         <button
           onClick={() => handleScroll('right')}
           className="p-1.5 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-brand-red shadow-md hover:bg-stone-50 cursor-pointer pointer-events-auto transition-all"
