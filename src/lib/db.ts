@@ -523,6 +523,8 @@ export async function saveSettings(settings: SystemSettings): Promise<SystemSett
 }
 
 export async function uploadImage(file: File): Promise<string> {
+  // Compressão profissional no lado do cliente: Reduz dimensões a 450px e ajusta a qualidade para 0.55
+  // Isso gera imagens extremamente leves (~10KB a 15KB) que carregam instantaneamente
   const compressImage = (imageFile: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -532,8 +534,8 @@ export async function uploadImage(file: File): Promise<string> {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 500;
-          const MAX_HEIGHT = 500;
+          const MAX_WIDTH = 450;
+          const MAX_HEIGHT = 450;
           let width = img.width;
           let height = img.height;
 
@@ -554,7 +556,8 @@ export async function uploadImage(file: File): Promise<string> {
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
 
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          // Qualidade 0.55: excelente balanço de beleza visual e tamanho ultra-compacto
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.55);
           resolve(compressedBase64);
         };
       };
@@ -563,6 +566,35 @@ export async function uploadImage(file: File): Promise<string> {
 
   const webOptimizedImageBase64 = await compressImage(file);
 
+  // 1. TENTA SUPABASE STORAGE (Nuvem Oficial com Espaço Gigante/Inalcançável)
+  if (supabase) {
+    try {
+      const response = await fetch(webOptimizedImageBase64);
+      const blob = await response.blob();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.jpg`;
+
+      const { data, error } = await supabase.storage
+        .from('dishes')
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage
+          .from('dishes')
+          .getPublicUrl(fileName);
+        
+        if (publicUrlData?.publicUrl) {
+          return publicUrlData.publicUrl;
+        }
+      }
+    } catch (storageErr) {
+      console.warn("Supabase Storage bucket 'dishes' não configurado ou indisponível. Usando fallback.", storageErr);
+    }
+  }
+
+  // 2. TENTA CLOUDINARY
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
   const cloudinaryUploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
 
@@ -589,5 +621,6 @@ export async function uploadImage(file: File): Promise<string> {
     }
   }
 
+  // 3. FALLBACK SEGURO: Retorna o Base64 ultra-compacto
   return webOptimizedImageBase64;
 }
