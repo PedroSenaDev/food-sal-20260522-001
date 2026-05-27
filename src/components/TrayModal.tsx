@@ -22,7 +22,8 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     tableNumber, 
     settings,
     createOrder,
-    clearCart
+    clearCart,
+    showToast
   } = useApp();
 
   const [step, setStep] = useState<CheckoutStep>('cart');
@@ -170,11 +171,15 @@ export default function TrayModal({ isOpen, onClose }: TrayModalProps) {
     // Link unificado do WhatsApp (funciona perfeitamente em Web, Desktop e Aplicativo Mobile)
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMessage}`;
     
-    // REDIRECIONAMENTO DIRETO na própria janela para evitar bloqueio de pop-up pelo navegador!
-    window.location.href = whatsappUrl;
+    // Notificação elegante antes do redirecionamento
+    showToast('Pedido finalizado! Redirecionando para o WhatsApp...', 'success');
 
-    clearCart();
-    onClose();
+    // Pequeno delay para o cliente perceber a notificação antes de abrir a aba externa
+    setTimeout(() => {
+      window.location.href = whatsappUrl;
+      clearCart();
+      onClose();
+    }, 1000);
   };
 
   return (

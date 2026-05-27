@@ -31,6 +31,12 @@ export interface CartItem {
   customPrice?: number;
 }
 
+export interface ToastMessage {
+  id: string;
+  message: string;
+  type: 'success' | 'info' | 'error';
+}
+
 interface AppContextType {
   categories: Category[];
   dishes: Dish[];
@@ -64,6 +70,11 @@ interface AppContextType {
   isAdminLoggedIn: boolean;
   loginAdmin: (password: string) => boolean;
   logoutAdmin: () => void;
+
+  // Toasts
+  toasts: ToastMessage[];
+  showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
+  removeToast: (id: string) => void;
 
   // Mutators
   addOrUpdateCategory: (category: Omit<Category, 'id'> & { id?: string }) => Promise<void>;
@@ -100,6 +111,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [tableNumber, setTableNumber] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+
+  // Toasts state
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    setToasts(prev => [...prev, { id, message, type }]);
+
+    // Auto dismiss after 3.5 seconds
+    setTimeout(() => {
+      removeToast(id);
+    }, 3500);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
 
   const refreshData = async () => {
     setIsLoading(true);
@@ -169,10 +197,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const cartItemId = `${dish.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
       return [...prev, { id: cartItemId, dish, quantity, notes, customizations, customPrice: targetPrice }];
     });
+
+    showToast(`Adicionado ao pedido: ${quantity}x ${dish.name}`, 'success');
   };
 
   const removeFromCart = (cartItemId: string) => {
+    const item = cart.find(i => i.id === cartItemId);
     setCart(prev => prev.filter(item => item.id !== cartItemId));
+    if (item) {
+      showToast(`${item.dish.name} removido da sacola`, 'info');
+    }
   };
 
   const updateCartQuantity = (cartItemId: string, quantity: number) => {
@@ -185,7 +219,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    showToast('A sacola de pedidos foi esvaziada', 'info');
+  };
 
   const cartTotal = cart.reduce((sum, item) => {
     const price = item.customPrice !== undefined ? item.customPrice : item.dish.price;
@@ -200,8 +237,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodsal_logged_in', 'true');
       }
+      showToast('Acesso ao Painel do Gerente autorizado', 'success');
       return true;
     }
+    showToast('Senha inválida', 'error');
     return false;
   };
 
@@ -210,6 +249,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('foodsal_logged_in');
     }
+    showToast('Sessão de gerenciamento encerrada', 'info');
   };
 
   // Mutators estritos: Só atualiza a tela após sucesso real no Supabase
@@ -225,9 +265,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
       });
+      showToast(`Categoria "${category.name}" salva com sucesso`, 'success');
     } catch (err: any) {
       console.error("Erro ao salvar categoria:", err);
-      alert(`Falha ao salvar no banco de dados: ${err.message || err}`);
+      showToast('Falha ao sincronizar categoria no servidor', 'error');
       throw err;
     }
   };
@@ -237,9 +278,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await dbDeleteCategory(id);
       setCategories(prev => prev.filter(c => c.id !== id));
       setDishes(prev => prev.filter(d => d.categoryId !== id));
+      showToast('Categoria excluída definitivamente', 'success');
     } catch (err: any) {
       console.error("Erro ao excluir categoria:", err);
-      alert(`Falha ao excluir categoria do banco de dados: ${err.message || err}`);
+      showToast('Falha ao excluir categoria no servidor', 'error');
       throw err;
     }
   };
@@ -256,9 +298,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
       });
+      showToast(`Prato "${dish.name}" salvo com sucesso`, 'success');
     } catch (err: any) {
       console.error("Erro ao salvar prato:", err);
-      alert(`Falha ao salvar o prato: ${err.message || err}`);
+      showToast('Falha ao salvar prato no servidor', 'error');
       throw err;
     }
   };
@@ -267,9 +310,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await dbDeleteDish(id);
       setDishes(prev => prev.filter(d => d.id !== id));
+      showToast('Prato removido do cardápio', 'success');
     } catch (err: any) {
       console.error("Erro ao excluir prato:", err);
-      alert(`Falha ao excluir o prato: ${err.message || err}`);
+      showToast('Erro ao remover o prato do servidor', 'error');
       throw err;
     }
   };
@@ -278,9 +322,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const saved = await dbSaveSettings(newSettings);
       setSettings(saved);
+      showToast('Informações do restaurante atualizadas', 'success');
     } catch (err: any) {
       console.error("Erro ao salvar configurações:", err);
-      alert(`Falha ao salvar as configurações: ${err.message || err}`);
+      showToast('Falha ao persistir as configurações', 'error');
       throw err;
     }
   };
@@ -317,6 +362,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isAdminLoggedIn,
       loginAdmin,
       logoutAdmin,
+      toasts,
+      showToast,
+      removeToast,
       addOrUpdateCategory,
       removeCategory,
       addOrUpdateDish,
@@ -335,4 +383,57 @@ export function useApp() {
     throw new Error('useApp must be used within an AppProvider');
   }
   return context;
+}
+</dyad-file>
+
+Agora vamos integrar o `ToastContainer` no layout do aplicativo (`src/app/layout.tsx`):
+
+<dyad-write path="src/app/layout.tsx" description="Insere o ToastContainer no corpo raiz da página para que as notificações funcionem globalmente.">
+import type { Metadata, Viewport } from "next";
+import { Playfair_Display, Outfit } from "next/font/google";
+import "./globals.css";
+import { AppProvider } from "@/context/AppContext";
+import ToastContainer from "@/components/ToastContainer";
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+});
+
+export const metadata: Metadata = {
+  title: "FoodSal - Cardápio Digital Premium",
+  description: "Saboreie nossa seleção especial diretamente da sua mesa. Peça de forma rápida e elegante.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="pt-BR" className={`${playfair.variable} ${outfit.variable} h-full`}>
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
+      <body className="min-h-full flex flex-col font-sans bg-[#F5E6D3] text-stone-800 antialiased selection:bg-[#C62828] selection:text-white">
+        <AppProvider>
+          {children}
+          <ToastContainer />
+        </AppProvider>
+      </body>
+    </html>
+  );
 }
