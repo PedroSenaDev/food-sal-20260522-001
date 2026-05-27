@@ -119,6 +119,35 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
     setErrorMsg('');
   };
 
+  // Clique na linha inteira do opcional
+  const handleRowClick = (group: CustomizationGroup, itemName: string, isRadio: boolean) => {
+    if (isRadio) {
+      handleOptionToggleSingle(group, itemName);
+    } else {
+      const currentGroupMap = { ...(selections[group.id] || {}) };
+      const currentQty = currentGroupMap[itemName] || 0;
+      const currentGroupTotal = getGroupSelectedCount(group.id);
+
+      if (currentQty > 0) {
+        // Se já está selecionado, ao clicar na linha nós desmarcamos (vai para 0)
+        currentGroupMap[itemName] = 0;
+      } else {
+        // Se não está selecionado, marcamos com quantidade 1
+        if (currentGroupTotal >= group.max) {
+          setErrorMsg(`Você já atingiu o limite máximo de ${group.max} opções para "${group.title}"`);
+          return;
+        }
+        currentGroupMap[itemName] = 1;
+      }
+
+      setSelections(prev => ({
+        ...prev,
+        [group.id]: currentGroupMap
+      }));
+      setErrorMsg('');
+    }
+  };
+
   const handleAddToCart = () => {
     // Validate minimum required selections per group
     if (dish.isCustomizable && dish.customizationOptions) {
@@ -326,26 +355,25 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                             return (
                               <div
                                 key={item.name}
-                                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                onClick={() => handleRowClick(group, item.name, isRadio)}
+                                className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
                                   isSelected
                                     ? 'bg-white border-brand-red ring-1 ring-brand-red shadow-sm'
-                                    : 'bg-white border-stone-200'
+                                    : 'bg-white border-stone-200 hover:border-brand-red/10'
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
                                   {isRadio ? (
                                     /* Radio Button graphic for single choice groups */
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOptionToggleSingle(group, item.name)}
-                                      className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
+                                    <div
+                                      className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 border transition-all ${
                                         isSelected
                                           ? 'bg-brand-red border-brand-red text-white'
                                           : 'border-stone-300 bg-white'
                                       }`}
                                     >
                                       {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
-                                    </button>
+                                    </div>
                                   ) : (
                                     /* Quantity indicator or checkbox for multiple choice groups */
                                     <div className={`h-5 w-5 rounded-md flex items-center justify-center shrink-0 border transition-all ${
@@ -369,10 +397,16 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
 
                                 {/* Quantity Control on Right (only if group allows more than 1 option) */}
                                 {!isRadio ? (
-                                  <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-lg p-0.5 shrink-0">
+                                  <div 
+                                    className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-lg p-0.5 shrink-0"
+                                    onClick={(e) => e.stopPropagation()} // impede desmarcar o item ao ajustar a quantidade
+                                  >
                                     <button
                                       type="button"
-                                      onClick={() => handleOptionQuantityChange(group, item.name, -1)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOptionQuantityChange(group, item.name, -1);
+                                      }}
                                       disabled={itemQty === 0}
                                       className="p-1 rounded text-stone-500 hover:bg-white disabled:opacity-30 active:scale-90 cursor-pointer"
                                     >
@@ -383,7 +417,10 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => handleOptionQuantityChange(group, item.name, 1)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOptionQuantityChange(group, item.name, 1);
+                                      }}
                                       disabled={totalChosenCount >= group.max}
                                       className="p-1 rounded text-stone-500 hover:bg-white disabled:opacity-30 active:scale-90 cursor-pointer"
                                     >
@@ -392,13 +429,9 @@ export default function MenuCard({ dish, categoryName }: MenuCardProps) {
                                   </div>
                                 ) : (
                                   /* Clean Select action for Radio items */
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOptionToggleSingle(group, item.name)}
-                                    className="text-[10px] font-bold text-brand-red hover:underline px-2 py-1 cursor-pointer"
-                                  >
+                                  <span className="text-[10px] font-bold text-brand-red hover:underline px-2 py-1">
                                     {isSelected ? 'Selecionado' : 'Selecionar'}
-                                  </button>
+                                  </span>
                                 )}
                               </div>
                             );
