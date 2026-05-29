@@ -14,6 +14,7 @@ import {
   deleteDish as dbDeleteDish, 
   saveSettings as dbSaveSettings,
   initializeLocalStorage,
+  supabase,
   Order
 } from '../lib/db';
 
@@ -68,8 +69,8 @@ interface AppContextType {
 
   // Admin auth
   isAdminLoggedIn: boolean;
-  loginAdmin: (password: string) => boolean;
-  logoutAdmin: () => void;
+  loginAdmin: (password: string) => Promise<boolean>;
+  logoutAdmin: () => Promise<void>;
 
   // Toasts
   toasts: ToastMessage[];
@@ -160,8 +161,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTableNumber(table);
       }
 
-      const loggedIn = localStorage.getItem('foodsal_logged_in') === 'true';
-      setIsAdminLoggedIn(loggedIn);
+      // Se o Supabase estiver configurado, monitora sessões reais de forma segura
+      if (supabase) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setIsAdminLoggedIn(!!session);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          setIsAdminLoggedIn(!!session);
+        });
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      } else {
+        const loggedIn = localStorage.getItem('foodsal_logged_in') === 'true';
+        setIsAdminLoggedIn(loggedIn);
+      }
     }
   }, []);
 
@@ -231,24 +247,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const loginAdmin = (password: string): boolean => {
-    if (password === 'Foodsal0905@') {
-      setIsAdminLoggedIn(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('foodsal_logged_in', 'true');
+  const loginAdmin = async (password: string): Promise<boolean> => {
+    if (supabase) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: 'admin@foodsal.com.br',
+          password
+        });
+
+        if (error) {
+          showToast('Credenciais inválidas! Tente novamente.', 'error');
+          return false;
+        }
+
+        setIsAdminLoggedIn(true);
+        showToast('Acesso ao Painel do Gerente autorizado', 'success');
+        return true;
+      } catch (err) {
+        showToast('Erro ao autenticar com o servidor', 'error');
+        return false;
       }
-      showToast('Acesso ao Painel do Gerente autorizado', 'success');
-      return true;
+    } else {
+      // Fallback seguro offline se o banco de dados não estiver configurado
+      if (password === 'Foodsal0905@') {
+        setIsAdminLoggedIn(true);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('foodsal_logged_in', 'true');
+        }
+        showToast('Acesso autorizado (Modo Offline/Local)', 'success');
+        return true;
+      }
+      showToast('Senha inválida', 'error');
+      return false;
     }
-    showToast('Senha inválida', 'error');
-    return false;
   };
 
-  const logoutAdmin = () => {
-    setIsAdminLoggedIn(false);
+  const logoutAdmin = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    
     if (typeof window !== 'undefined') {
       localStorage.removeItem('foodsal_logged_in');
     }
+    
+    setIsAdminLoggedIn(false);
     showToast('Sessão de gerenciamento encerrada', 'info');
   };
 
@@ -298,7 +341,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
       });
-      showToast(`Prato "${dish.name}" salva com sucesso`, 'success');
+      showToast(`Prato "${dish.name}" salvo com sucesso`, 'success');
     } catch (err: any) {
       console.error("Erro ao salvar prato:", err);
       showToast('Falha ao salvar prato no servidor', 'error');

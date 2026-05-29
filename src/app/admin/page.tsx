@@ -6,7 +6,7 @@ import AdminLayout from '../../components/AdminLayout';
 import CategoryCrud from '../../components/CategoryCrud';
 import DishCrud from '../../components/DishCrud';
 import AdminSettings from '../../components/AdminSettings';
-import { Lock, ArrowRight, ShieldAlert, Key } from 'lucide-react';
+import { Lock, ArrowRight, ShieldAlert, Key, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -16,14 +16,22 @@ export default function AdminPage() {
   // Login states
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsAuthenticating(true);
 
-    const success = loginAdmin(password);
-    if (!success) {
-      setError('Senha incorreta! Por favor, verifique os dados e tente novamente.');
+    try {
+      const success = await loginAdmin(password);
+      if (!success) {
+        setError('Senha de acesso incorreta! Por favor, tente novamente.');
+      }
+    } catch (err) {
+      setError('Erro de conexão ao tentar validar seu acesso.');
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -61,7 +69,11 @@ export default function AdminPage() {
           
           <div className="text-center space-y-2">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-red/10 text-brand-red">
-              <Lock size={22} />
+              {isAuthenticating ? (
+                <Loader2 className="animate-spin" size={22} />
+              ) : (
+                <Lock size={22} />
+              )}
             </div>
             
             <h1 className="font-serif text-2xl font-bold text-stone-900 tracking-tight">
@@ -81,17 +93,18 @@ export default function AdminPage() {
                 <input
                   type="password"
                   required
+                  disabled={isAuthenticating}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-900 font-mono"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-stone-200 focus:border-brand-red focus:ring-1 focus:ring-brand-red outline-none text-sm text-stone-900 font-mono disabled:opacity-60"
                 />
                 <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
               </div>
             </div>
 
             {error && (
-              <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700 animate-shake">
+              <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700">
                 <ShieldAlert size={16} className="shrink-0 mt-0.5" />
                 <span className="font-semibold leading-normal">{error}</span>
               </div>
@@ -99,10 +112,20 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="w-full py-3.5 px-4 bg-brand-red hover:bg-brand-darkred active:scale-98 transition-all duration-200 text-white font-bold text-sm tracking-wider uppercase rounded-xl shadow-md shadow-brand-red/15 flex items-center justify-center gap-1.5 cursor-pointer"
+              disabled={isAuthenticating}
+              className="w-full py-3.5 px-4 bg-brand-red hover:bg-brand-darkred active:scale-98 transition-all duration-200 text-white font-bold text-sm tracking-wider uppercase rounded-xl shadow-md shadow-brand-red/15 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <span>Entrar no Painel</span>
-              <ArrowRight size={16} />
+              {isAuthenticating ? (
+                <>
+                  <Loader2 className="animate-spin" size={16} />
+                  <span>Autenticando...</span>
+                </>
+              ) : (
+                <>
+                  <span>Entrar no Painel</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </form>
 
