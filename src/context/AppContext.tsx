@@ -175,8 +175,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           subscription.unsubscribe();
         };
       } else {
-        const loggedIn = localStorage.getItem('foodsal_logged_in') === 'true';
-        setIsAdminLoggedIn(loggedIn);
+        setIsAdminLoggedIn(false);
       }
     }
   }, []);
@@ -268,16 +267,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return false;
       }
     } else {
-      // Fallback seguro offline se o banco de dados não estiver configurado
-      if (password === 'Foodsal0905@') {
-        setIsAdminLoggedIn(true);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('foodsal_logged_in', 'true');
-        }
-        showToast('Acesso autorizado (Modo Offline/Local)', 'success');
-        return true;
-      }
-      showToast('Senha inválida', 'error');
+      showToast('O banco de dados Supabase não está configurado. O login offline foi desativado por motivos de segurança.', 'error');
       return false;
     }
   };
@@ -285,10 +275,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logoutAdmin = async () => {
     if (supabase) {
       await supabase.auth.signOut();
-    }
-    
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('foodsal_logged_in');
     }
     
     setIsAdminLoggedIn(false);
