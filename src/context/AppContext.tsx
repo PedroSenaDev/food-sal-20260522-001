@@ -232,7 +232,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const loginAdmin = (password: string): boolean => {
-    if (password === 'admin123' || password === 'foodsal2026') {
+    if (password === 'Foodsal0905@') {
       setIsAdminLoggedIn(true);
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodsal_logged_in', 'true');
@@ -298,7 +298,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder);
       });
-      showToast(`Prato "${dish.name}" salvo com sucesso`, 'success');
+      showToast(`Prato "${dish.name}" salva com sucesso`, 'success');
     } catch (err: any) {
       console.error("Erro ao salvar prato:", err);
       showToast('Falha ao salvar prato no servidor', 'error');

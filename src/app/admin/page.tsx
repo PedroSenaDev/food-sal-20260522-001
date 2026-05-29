@@ -23,7 +23,7 @@ export default function AdminPage() {
 
     const success = loginAdmin(password);
     if (!success) {
-      setError('Senha incorreta! Dica: use "admin123" ou "foodsal2026"');
+      setError('Senha incorreta! Por favor, verifique os dados e tente novamente.');
     }
   };
 
@@ -105,12 +105,6 @@ export default function AdminPage() {
               <ArrowRight size={16} />
             </button>
           </form>
-
-          <div className="pt-2 text-center">
-            <span className="text-[10px] text-stone-400 block leading-relaxed max-w-xs mx-auto">
-              🔐 Dica para testes: digite a senha padrão <code>admin123</code> ou <code>foodsal2026</code>.
-            </span>
-          </div>
 
         </div>
 
